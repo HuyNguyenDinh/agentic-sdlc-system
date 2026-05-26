@@ -1,4 +1,4 @@
-.PHONY: create validate apply help
+.PHONY: create validate apply install-skills help
 
 WORKFLOW ?= workflow/orchestrator-debate.yaml
 
@@ -15,3 +15,6 @@ validate: ## Validate a workflow YAML against schema
 
 apply: ## Validate + render workflow YAML to markdown
 	$(PYTHON) -m src.cli apply $(WORKFLOW)
+
+install-skills: ## Install all skills from skills.txt via npx skills add
+	$(PYTHON) -m src.install_skills

@@ -1,3 +1,3 @@
-https://www.skills.sh/github/awesome-copilot/prd
+https://github.com/github/awesome-copilot --skill prd
 https://github.com/HuyNguyenDinh/multica-collaboration-skill
-https://github.com/obra/superpowers --all
+https://github.com/obra/superpowers
