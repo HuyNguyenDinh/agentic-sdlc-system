@@ -1,0 +1,111 @@
+# Multi-Agent Debate Workflow
+# Canonical YAML definition — rendered into documentation and executable by the orchestrator.
+
+workflow:
+  name: orchestrator-debate
+  description: >
+    PM-orchestrated multi-agent debate workflow for SDLC.
+    Two debate layers (architecture + implementation) with HITL gate.
+
+  max_turn: 3
+  squad_leader: pm-agent
+
+agents:
+  - id: pm-agent
+    role: Squad Leader & Orchestrator
+    path: agents/management/pm-agent.md
+
+  - id: sa-agent
+    role: Software Architect
+    path: agents/solution_architect/sa-agent.md
+
+  - id: sa-critic-agent
+    role: Architecture Critic
+    path: agents/solution_architect/sa-critic-agent.md
+
+  - id: coder-agent
+    role: Software Developer
+    path: agents/coding/coder.md
+
+  - id: code-critic-agent
+    role: Code Reviewer
+    path: agents/coding/code-critic.md
+
+  - id: qa-agent
+    role: Quality Assurance
+    path: agents/qa/qa.md
+
+  - id: qa-critic-agent
+    role: QA Reviewer
+    path: agents/qa/qa-critic.md
+
+steps:
+  - id: initialization
+    type: delegate
+    description: PM assigns SA to create a draft SRS from the raw PRD
+    actor: sa-agent
+    output: draft-srs
+
+  - id: architecture-debate
+    type: debate
+    description: SA and SA Critic debate to refine the architecture
+    actor: sa-agent
+    critic: sa-critic-agent
+    input: draft-srs
+    artifact: srs
+    max_turn: 3
+    on_approved: hitl
+    on_max_turn_reached: hitl
+
+  - id: hitl
+    type: hitl
+    description: Product Owner reviews and approves the finalized SRS
+    artifact: srs
+    on_approved: implementation-planning
+    on_rejected: initialization
+
+  - id: implementation-planning
+    type: delegate
+    description: PM breaks down tasks and assigns to Workers
+    actor: pm-agent
+    input: srs
+    output: task-breakdown
+
+  - id: worker-plans
+    type: fanout
+    description: Workers submit their Implementation Plans in parallel
+    input: task-breakdown
+    workers:
+      - id: coder-plan
+        actor: coder-agent
+        output: code-implementation-plan
+
+      - id: qa-plan
+        actor: qa-agent
+        output: qa-implementation-plan
+
+  - id: implementation-debate
+    type: debate
+    description: Critics review Implementation Plans; adversarial debate loop
+    debates:
+      - actor: coder-agent
+        critic: code-critic-agent
+        artifact: code-implementation-plan
+        max_turn: 3
+
+      - actor: qa-agent
+        critic: qa-critic-agent
+        artifact: qa-implementation-plan
+        max_turn: 3
+
+  - id: execution
+    type: delegate
+    description: Workers write code and test suites
+    actor: [coder-agent, qa-agent]
+    input: approved-implementation-plans
+
+  - id: completion
+    type: delegate
+    description: PM synthesizes results and reports
+    actor: pm-agent
+    input: execution-results

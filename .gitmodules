@@ -1,0 +1,6 @@
+[submodule "skills/obsidian-wiki"]
+	path = skills/obsidian-wiki
+	url = https://github.com/ar9av/obsidian-wiki
+[submodule "skills/vercel-react-best-practices"]
+	path = skills/vercel-react-best-practices
+	url = https://github.com/vercel-labs/agent-skills.git
