@@ -43,6 +43,44 @@ def _agent_table(agents: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _knowledge_sources_table(ks: list[dict]) -> str:
+    lines = [
+        "## Knowledge Sources",
+        "",
+        "| Source | Type | Description | Access |",
+        "|--------|------|-------------|--------|",
+    ]
+    for source in ks:
+        access_str = ", ".join(source["access"])
+        lines.append(f"| `{source['id']}` | {source['type']} | {source['description'].strip()} | {access_str} |")
+    return "\n".join(lines)
+
+
+def _knowledge_base_protocol(ks: list[dict]) -> str:
+    lines = [
+        "### Knowledge Base Protocol",
+        "",
+        "All agents in this squad **MUST** follow these knowledge base interaction rules:",
+        "",
+    ]
+    
+    read_sources = [s for s in ks if "read" in s.get("access", [])]
+    if read_sources:
+        lines.append("**Before starting work** — query these sources to discover relevant prior art, decisions, patterns, and context. Use findings to inform and ground your work in existing organizational knowledge:")
+        for s in read_sources:
+            lines.append(f"- `{s['id']}` ({s['type']})")
+        lines.append("")
+        
+    write_sources = [s for s in ks if "write" in s.get("access", [])]
+    if write_sources:
+        lines.append("**After completing work** — update these sources with new artifacts, decisions, and learnings. Maintain and enrich the knowledge base at your responsibility layer level. Ensure exported knowledge is structured, cross-referenced, and reusable by other squads:")
+        for s in write_sources:
+            lines.append(f"- `{s['id']}` ({s['type']})")
+        lines.append("")
+        
+    return "\n".join(lines).strip()
+
+
 def render_mermaid(data: dict) -> str:
     agents = data["agents"]
     steps = data["steps"]
@@ -200,6 +238,14 @@ def render_markdown(data: dict, yaml_rel: str = "") -> str:
 
     parts.append(_agent_table(agents))
     parts.append("")
+
+    ks = data.get("knowledge_sources")
+    if ks:
+        parts.append(_knowledge_sources_table(ks))
+        parts.append("")
+        parts.append(_knowledge_base_protocol(ks))
+        parts.append("")
+
     parts.append("## Workflow")
     parts.append("")
     parts.append(render_mermaid(data))
