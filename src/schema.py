@@ -38,6 +38,24 @@ JSON_SCHEMA = {
                 },
             },
         },
+        "knowledge_sources": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["id", "type", "description", "access"],
+                "properties": {
+                    "id": {"type": "string", "pattern": ID_PATTERN},
+                    "type": {"enum": ["wiki", "repository", "external"]},
+                    "description": {"type": "string"},
+                    "access": {
+                        "type": "array",
+                        "items": {"enum": ["read", "write"]},
+                        "minItems": 1,
+                        "uniqueItems": True,
+                    },
+                },
+            },
+        },
         "steps": {
             "type": "array",
             "minItems": 1,
@@ -177,6 +195,52 @@ def validate(data: dict) -> list[str]:
                             errors.append(f"steps[{i}].workers[{j}].id is required")
                         if not w.get("actor"):
                             errors.append(f"steps[{i}].workers[{j}].actor is required")
+
+    # Validate knowledge_sources if present
+    ks = data.get("knowledge_sources")
+    if ks is not None:
+        if not isinstance(ks, list):
+            errors.append("knowledge_sources must be an array")
+        else:
+            ks_ids = set()
+            import re
+            id_re = re.compile(ID_PATTERN)
+            for i, source in enumerate(ks):
+                if not isinstance(source, dict):
+                    errors.append(f"knowledge_sources[{i}] must be an object")
+                    continue
+
+                for fld in ["id", "type", "description", "access"]:
+                    if fld not in source:
+                        errors.append(f"knowledge_sources[{i}].{fld} is required")
+
+                sid = source.get("id")
+                if sid:
+                    if not isinstance(sid, str):
+                        errors.append(f"knowledge_sources[{i}].id must be a string")
+                    elif not id_re.match(sid):
+                        errors.append(f"knowledge_sources[{i}].id '{sid}' must match pattern {ID_PATTERN}")
+                    elif sid in ks_ids:
+                        errors.append(f"knowledge_sources[{i}].id '{sid}' is duplicated")
+                    else:
+                        ks_ids.add(sid)
+
+                stype = source.get("type")
+                if stype and stype not in ["wiki", "repository", "external"]:
+                    errors.append(f"knowledge_sources[{i}].type must be one of ['wiki', 'repository', 'external'], got '{stype}'")
+
+                sdesc = source.get("description")
+                if sdesc and not isinstance(sdesc, str):
+                    errors.append(f"knowledge_sources[{i}].description must be a string")
+
+                access = source.get("access")
+                if access is not None:
+                    if not isinstance(access, list) or not access:
+                        errors.append(f"knowledge_sources[{i}].access must be a non-empty array")
+                    else:
+                        for a in access:
+                            if a not in ["read", "write"]:
+                                errors.append(f"knowledge_sources[{i}].access item must be one of ['read', 'write'], got '{a}'")
 
     return errors
 

@@ -1,0 +1,89 @@
+workflow:
+  name: product-squad
+  description: >
+    Product Lead-orchestrated product discovery and PRD creation workflow.
+    Two layers of debate (discovery brief + detailed PRD) with stakeholder HITL reviews.
+
+  max_turn: 3
+  squad_leader: product-lead-agent
+
+agents:
+  - id: product-lead-agent
+    role: Squad Leader & Orchestrator
+    path: agents/product/product-lead.md
+
+  - id: product-manager-agent
+    role: Product Manager & PRD Writer
+    path: agents/product/product-manager.md
+
+  - id: product-critic-agent
+    role: Product Critic & Reviewer
+    path: agents/product/product-critic.md
+
+knowledge_sources:
+  - id: llm-wiki
+    type: wiki
+    description: Obsidian-based organizational knowledge base
+    access: [read, write]
+
+  - id: customer-feedback
+    type: external
+    description: Customer feedback, support tickets, and usage analytics
+    access: [read]
+
+steps:
+  - id: discovery
+    type: delegate
+    description: PM drafts discovery brief from raw feature request
+    actor: product-manager-agent
+    output: discovery-brief
+
+  - id: discovery-debate
+    type: debate
+    description: PM and Critic debate the discovery brief
+    actor: product-manager-agent
+    critic: product-critic-agent
+    input: discovery-brief
+    artifact: finalized-discovery-brief
+    max_turn: 3
+    on_approved: discovery-review
+    on_max_turn_reached: discovery-review
+
+  - id: discovery-review
+    type: hitl
+    description: Stakeholder reviews discovery brief
+    artifact: finalized-discovery-brief
+    on_approved: prd-drafting
+    on_rejected: discovery
+
+  - id: prd-drafting
+    type: delegate
+    description: PM writes detailed PRD from approved brief
+    actor: product-manager-agent
+    input: finalized-discovery-brief
+    output: draft-prd
+
+  - id: prd-debate
+    type: debate
+    description: PM and Critic debate the PRD
+    actor: product-manager-agent
+    critic: product-critic-agent
+    input: draft-prd
+    artifact: prd
+    max_turn: 3
+    on_approved: prd-review
+    on_max_turn_reached: prd-review
+
+  - id: prd-review
+    type: hitl
+    description: Stakeholder reviews the final PRD
+    artifact: prd
+    on_approved: packaging
+    on_rejected: prd-drafting
+
+  - id: packaging
+    type: delegate
+    description: Product Lead packages approved PRD and exports to KB
+    actor: product-lead-agent
+    input: prd
+    output: product-package
