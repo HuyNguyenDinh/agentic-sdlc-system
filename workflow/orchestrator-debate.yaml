@@ -10,6 +10,17 @@ workflow:
   max_turn: 3
   squad_leader: pm-agent
 
+knowledge_sources:
+  - id: codebase
+    type: repository
+    description: Project source code and documentation
+    access: [read, write]
+
+  - id: llm-wiki
+    type: wiki
+    description: Obsidian-based organizational knowledge base
+    access: [read, write]
+
 agents:
   - id: pm-agent
     role: Squad Leader & Orchestrator
