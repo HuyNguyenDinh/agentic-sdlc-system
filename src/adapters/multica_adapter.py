@@ -4,6 +4,9 @@ from src.core.domain.models import Agent
 from src.core.ports.agent_publisher import AgentPublisherPort
 
 class MulticaAdapter(AgentPublisherPort):
+    def __init__(self, runtime_id: str = None):
+        self.runtime_id = runtime_id
+
     def _run_cmd(self, args: list[str]) -> subprocess.CompletedProcess:
         try:
             return subprocess.run(
@@ -41,6 +44,8 @@ class MulticaAdapter(AgentPublisherPort):
                 "--name", agent.id,
                 "--instructions", agent.instructions
             ]
+            if self.runtime_id:
+                cmd += ["--runtime-id", self.runtime_id]
             if agent.description:
                 cmd += ["--description", agent.description]
                 
