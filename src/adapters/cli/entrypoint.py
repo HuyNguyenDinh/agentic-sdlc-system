@@ -8,6 +8,7 @@ from src.adapters.fs_agent_repository import FSAgentRepository
 from src.adapters.multica_adapter import MulticaAdapter
 from src.core.services.workflow_service import validate, EXAMPLE_WORKFLOW
 from src.adapters.markdown_renderer import render_file
+from src.core.services.workflow_sync_service import WorkflowSyncService
 
 def cmd_create(args):
     path = Path(args.name)
@@ -89,6 +90,24 @@ def cmd_sync_agent(args):
         sys.exit(1)
     sys.exit(0)
 
+def cmd_sync_workflow(args):
+    path = Path(args.yaml)
+    if not path.exists():
+        print(f"Error: {path} not found", file=sys.stderr)
+        sys.exit(1)
+
+    if args.adapter == "multica":
+        pub = MulticaAdapter(runtime_id=getattr(args, "runtime_id", None))
+    else:
+        print(f"Error: Unknown adapter '{args.adapter}'", file=sys.stderr)
+        sys.exit(1)
+
+    service = WorkflowSyncService(publisher=pub)
+    success = service.sync_workflow(str(path))
+    if not success:
+        sys.exit(1)
+    sys.exit(0)
+
 def main():
     parser = argparse.ArgumentParser(
         description="agentic-sdlc — Hexagonal IaC CLI for SDLC workflows"
@@ -116,6 +135,13 @@ def main():
     p_sync.add_argument("--adapter", default="multica", choices=["multica"], help="target adapter to publish to (default: multica)")
     p_sync.add_argument("--runtime-id", help="runtime ID for the multica adapter")
     p_sync.set_defaults(func=cmd_sync_agent)
+
+    # sync-workflow
+    p_sync_wf = sub.add_parser("sync-workflow", help="validate, render, and sync a workflow YAML to target adapter as a squad")
+    p_sync_wf.add_argument("yaml", help="path to workflow YAML")
+    p_sync_wf.add_argument("--adapter", default="multica", choices=["multica"], help="target adapter to publish to (default: multica)")
+    p_sync_wf.add_argument("--runtime-id", help="runtime ID for the target adapter")
+    p_sync_wf.set_defaults(func=cmd_sync_workflow)
 
     args = parser.parse_args()
     args.func(args)
