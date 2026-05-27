@@ -1,4 +1,4 @@
-.PHONY: create validate apply install-skills sync-agent test help
+.PHONY: create validate apply install-skills sync-agent sync-workflow test help
 
 WORKFLOW ?= workflow/orchestrator-debate.yaml
 ADAPTER ?= multica
@@ -23,6 +23,9 @@ install-skills: ## Install all skills from skills.txt via npx skills add
 
 sync-agent: ## Scan agents directory recursively and publish to target adapter (usage: make sync-agent ADAPTER=multica RUNTIME_ID=my-id)
 	$(PYTHON) -m src.cli sync-agent --adapter $(ADAPTER) $(if $(RUNTIME_ID),--runtime-id $(RUNTIME_ID))
+
+sync-workflow: ## Validate + publish a workflow YAML as a squad to multica (usage: make sync-workflow WORKFLOW=workflow/product-squad.yaml)
+	$(PYTHON) -m src.cli sync-workflow $(WORKFLOW) --adapter $(ADAPTER) $(if $(RUNTIME_ID),--runtime-id $(RUNTIME_ID))
 
 test: ## Run unit tests recursively
 	$(PYTHON) -m unittest discover -s tests
