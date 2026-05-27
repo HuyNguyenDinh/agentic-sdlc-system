@@ -2,7 +2,7 @@
 # Canonical YAML definition — rendered into documentation and executable by the orchestrator.
 
 workflow:
-  name: orchestrator-debate
+  name: development
   description: >
     PM-orchestrated multi-agent debate workflow for SDLC.
     Two debate layers (architecture + implementation) with HITL gate.

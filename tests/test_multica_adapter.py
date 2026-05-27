@@ -98,15 +98,17 @@ class TestMulticaAdapter(unittest.TestCase):
         mock_get = MagicMock(returncode=1)
         # 2. Mock multica squad create command to return exit code 0 (success)
         mock_create = MagicMock(returncode=0)
-        mock_run.side_effect = [mock_get, mock_create]
+        # 3. Mock multica agent update command to return exit code 0 (success)
+        mock_leader_update = MagicMock(returncode=0)
+        mock_run.side_effect = [mock_get, mock_create, mock_leader_update]
         
         adapter = MulticaAdapter()
-        workflow = Workflow(id="product-squad", instructions="# Product Squad\nDescription...", description="Manage product features")
+        workflow = Workflow(id="product-squad", instructions="# Product Squad\nDescription...", squad_leader="product-lead-agent", description="Manage product features")
         
         success = adapter.publish(workflow)
         
         self.assertTrue(success)
-        self.assertEqual(mock_run.call_count, 2)
+        self.assertEqual(mock_run.call_count, 3)
         
         # Verify get command arguments
         mock_run.assert_any_call(
@@ -116,9 +118,17 @@ class TestMulticaAdapter(unittest.TestCase):
             check=False
         )
         
-        # Verify create command arguments
+        # Verify squad create uses --description (not --instructions) and --leader
         mock_run.assert_any_call(
-            ["multica", "squad", "create", "--name", "product-squad", "--instructions", "# Product Squad\nDescription...", "--description", "Manage product features"],
+            ["multica", "squad", "create", "--name", "product-squad", "--leader", "product-lead-agent", "--description", "Manage product features"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+
+        # Verify squad leader agent update with workflow instructions
+        mock_run.assert_any_call(
+            ["multica", "agent", "update", "product-lead-agent", "--instructions", "# Product Squad\nDescription..."],
             capture_output=True,
             text=True,
             check=False
@@ -130,15 +140,17 @@ class TestMulticaAdapter(unittest.TestCase):
         mock_get = MagicMock(returncode=0)
         # 2. Mock multica squad update command to return exit code 0 (success)
         mock_update = MagicMock(returncode=0)
-        mock_run.side_effect = [mock_get, mock_update]
+        # 3. Mock multica agent update command to return exit code 0 (success)
+        mock_leader_update = MagicMock(returncode=0)
+        mock_run.side_effect = [mock_get, mock_update, mock_leader_update]
         
         adapter = MulticaAdapter()
-        workflow = Workflow(id="product-squad", instructions="# Product Squad\nDescription...", description="Manage product features")
+        workflow = Workflow(id="product-squad", instructions="# Product Squad\nDescription...", squad_leader="product-lead-agent", description="Manage product features")
         
         success = adapter.publish(workflow)
         
         self.assertTrue(success)
-        self.assertEqual(mock_run.call_count, 2)
+        self.assertEqual(mock_run.call_count, 3)
         
         # Verify get command arguments
         mock_run.assert_any_call(
@@ -148,9 +160,17 @@ class TestMulticaAdapter(unittest.TestCase):
             check=False
         )
         
-        # Verify update command arguments
+        # Verify squad update uses --description (not --instructions)
         mock_run.assert_any_call(
-            ["multica", "squad", "update", "product-squad", "--instructions", "# Product Squad\nDescription...", "--description", "Manage product features"],
+            ["multica", "squad", "update", "product-squad", "--description", "Manage product features"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+
+        # Verify squad leader agent update with workflow instructions
+        mock_run.assert_any_call(
+            ["multica", "agent", "update", "product-lead-agent", "--instructions", "# Product Squad\nDescription..."],
             capture_output=True,
             text=True,
             check=False
@@ -160,10 +180,11 @@ class TestMulticaAdapter(unittest.TestCase):
     def test_publish_workflow_keyword_arguments(self, mock_run):
         mock_get = MagicMock(returncode=0)
         mock_update = MagicMock(returncode=0)
-        mock_run.side_effect = [mock_get, mock_update]
+        mock_leader_update = MagicMock(returncode=0)
+        mock_run.side_effect = [mock_get, mock_update, mock_leader_update]
         
         adapter = MulticaAdapter()
-        workflow = Workflow(id="kw-squad", instructions="instructions")
+        workflow = Workflow(id="kw-squad", instructions="instructions", squad_leader="leader-agent")
         
         # Test keyword calling convention
         success = adapter.publish(workflow=workflow)
@@ -178,7 +199,21 @@ class TestMulticaAdapter(unittest.TestCase):
         mock_run.side_effect = [mock_get, mock_create]
         
         adapter = MulticaAdapter()
-        workflow = Workflow(id="product-squad", instructions="Description")
+        workflow = Workflow(id="product-squad", instructions="Description", squad_leader="leader-agent")
+        
+        success = adapter.publish(workflow)
+        self.assertFalse(success)
+
+    @patch("subprocess.run")
+    def test_publish_workflow_leader_update_failure(self, mock_run):
+        # Squad creates successfully but leader update fails
+        mock_get = MagicMock(returncode=1)
+        mock_create = MagicMock(returncode=0)
+        mock_leader_update = MagicMock(returncode=1, stderr="Agent not found")
+        mock_run.side_effect = [mock_get, mock_create, mock_leader_update]
+        
+        adapter = MulticaAdapter()
+        workflow = Workflow(id="product-squad", instructions="# Instructions", squad_leader="missing-agent", description="Desc")
         
         success = adapter.publish(workflow)
         self.assertFalse(success)

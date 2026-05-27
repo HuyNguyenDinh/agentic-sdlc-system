@@ -83,7 +83,6 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
             print(f"  Squad '{workflow.id}' exists. Updating...")
             cmd = [
                 "multica", "squad", "update", workflow.id,
-                "--instructions", workflow.instructions
             ]
             if workflow.description:
                 cmd += ["--description", workflow.description]
@@ -93,7 +92,7 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
             cmd = [
                 "multica", "squad", "create",
                 "--name", workflow.id,
-                "--instructions", workflow.instructions
+                "--leader", workflow.squad_leader,
             ]
             if workflow.description:
                 cmd += ["--description", workflow.description]
@@ -101,8 +100,25 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
         res = self._run_cmd(cmd)
         if res.returncode != 0:
             err_msg = res.stderr.strip() if res.stderr else "Unknown error"
-            print(f"  ✗ Failed to sync '{workflow.id}': {err_msg}", file=sys.stderr)
+            print(f"  ✗ Failed to sync squad '{workflow.id}': {err_msg}", file=sys.stderr)
             return False
         else:
-            print(f"  ✓ Successfully synced '{workflow.id}'")
-            return True
+            print(f"  ✓ Successfully synced squad '{workflow.id}'")
+
+        # Append workflow instructions to the squad leader agent
+        if workflow.squad_leader and workflow.instructions:
+            print(f"  Updating squad leader '{workflow.squad_leader}' instructions...")
+            leader_cmd = [
+                "multica", "agent", "update", workflow.squad_leader,
+                "--instructions", workflow.instructions,
+            ]
+            leader_res = self._run_cmd(leader_cmd)
+            if leader_res.returncode != 0:
+                err_msg = leader_res.stderr.strip() if leader_res.stderr else "Unknown error"
+                print(f"  ✗ Failed to update squad leader '{workflow.squad_leader}': {err_msg}", file=sys.stderr)
+                return False
+            else:
+                print(f"  ✓ Successfully updated squad leader '{workflow.squad_leader}' instructions")
+
+        return True
+

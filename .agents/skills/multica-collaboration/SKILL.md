@@ -49,6 +49,20 @@ Use the multica CLI to synchronize your work with the team workspace, manage pro
 | Import Skill | `multica skill import ...` (from GitHub, ClawHub, or local) |
 | Manage Skill Files | `multica skill files ...` |
 
+## Squads
+
+| Action | Command |
+| :--- | :--- |
+| List Squads | `multica squad list` |
+| Get Squad Details | `multica squad get {id}` |
+| Create Squad | `multica squad create --name "..." --leader {agent}` |
+| Update Squad | `multica squad update {id} ...` (name, description, instructions, leader, or avatar) |
+| Delete Squad | `multica squad delete {id}` (archive / soft-delete) |
+| List Members | `multica squad member list {squad-id}` |
+| Add Member | `multica squad member add {squad-id}` |
+| Remove Member | `multica squad member remove {squad-id}` |
+| Record Activity | `multica squad activity {issue-id} {action\|no_action\|failed} --reason "..."` |
+
 ## Autopilots
 
 | Action | Command |

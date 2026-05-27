@@ -37,10 +37,12 @@ class WorkflowSyncService:
         wf_data = data.get("workflow", {})
         wf_id = wf_data.get("name")
         wf_description = wf_data.get("description")
+        wf_squad_leader = wf_data.get("squad_leader")
 
         workflow = Workflow(
             id=wf_id,
             instructions=rendered_md,
+            squad_leader=wf_squad_leader,
             description=wf_description
         )
 

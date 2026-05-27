@@ -14,4 +14,5 @@ class Workflow:
     """Represents an executable orchestration workflow containing agent/squad instructions."""
     id: str
     instructions: str
+    squad_leader: str
     description: Optional[str] = None
