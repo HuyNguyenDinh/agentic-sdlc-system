@@ -39,11 +39,16 @@ class WorkflowSyncService:
         wf_description = wf_data.get("description")
         wf_squad_leader = wf_data.get("squad_leader")
 
+        # Collect all agent IDs defined in the YAML (preserving order)
+        agents_list = data.get("agents", [])
+        wf_agent_ids = [a["id"] for a in agents_list if "id" in a]
+
         workflow = Workflow(
             id=wf_id,
             instructions=rendered_md,
             squad_leader=wf_squad_leader,
-            description=wf_description
+            description=wf_description,
+            agent_ids=wf_agent_ids
         )
 
         # Publish

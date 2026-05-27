@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Optional, List
 
 @dataclass(frozen=True)
 class Agent:
@@ -16,3 +16,4 @@ class Workflow:
     instructions: str
     squad_leader: str
     description: Optional[str] = None
+    agent_ids: List[str] = field(default_factory=list)
