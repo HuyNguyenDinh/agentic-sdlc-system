@@ -7,3 +7,11 @@ class Agent:
     role: str
     instructions: str
     description: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class Workflow:
+    """Represents an executable orchestration workflow containing agent/squad instructions."""
+    id: str
+    instructions: str
+    description: Optional[str] = None

@@ -1,5 +1,5 @@
 import unittest
-from src.core.domain.models import Agent
+from src.core.domain.models import Agent, Workflow
 
 class TestDomainModels(unittest.TestCase):
     def test_agent_creation(self):
@@ -13,6 +13,16 @@ class TestDomainModels(unittest.TestCase):
         self.assertEqual(agent.role, "Squad Leader & Orchestrator")
         self.assertEqual(agent.instructions, "Orchestrate everything.")
         self.assertEqual(agent.description, "Project manager agent")
+
+    def test_workflow_creation(self):
+        workflow = Workflow(
+            id="product-squad",
+            instructions="# Product Squad\nDescription...",
+            description="Manage product features"
+        )
+        self.assertEqual(workflow.id, "product-squad")
+        self.assertEqual(workflow.instructions, "# Product Squad\nDescription...")
+        self.assertEqual(workflow.description, "Manage product features")
 
 if __name__ == "__main__":
     unittest.main()
