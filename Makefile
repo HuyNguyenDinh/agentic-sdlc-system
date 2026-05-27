@@ -1,4 +1,4 @@
-.PHONY: create validate apply install-skills help
+.PHONY: create validate apply install-skills sync-agents test help
 
 WORKFLOW ?= workflow/orchestrator-debate.yaml
 
@@ -18,3 +18,10 @@ apply: ## Validate + render workflow YAML to markdown
 
 install-skills: ## Install all skills from skills.txt via npx skills add
 	$(PYTHON) -m src.install_skills
+
+sync-agents: ## Scan agents directory recursively and publish to Multica
+	$(PYTHON) -m src.cli sync-agents
+
+test: ## Run unit tests recursively
+	$(PYTHON) -m unittest discover -s tests
+
