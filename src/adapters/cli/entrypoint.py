@@ -69,13 +69,19 @@ def cmd_apply(args):
     render_file(str(path), str(output))
     print(f"Applied: {path} → {output}")
 
-def cmd_sync_agents(args):
+def cmd_sync_agent(args):
     # Determine agents directory relative to project root
     project_root = Path(__file__).resolve().parent.parent.parent.parent
     agents_dir = project_root / "agents"
     
     repo = FSAgentRepository(base_path=agents_dir)
-    pub = MulticaAdapter()
+    
+    if args.adapter == "multica":
+        pub = MulticaAdapter()
+    else:
+        print(f"Error: Unknown adapter '{args.adapter}'", file=sys.stderr)
+        sys.exit(1)
+        
     service = AgentService(agent_repo=repo, agent_publisher=pub)
     
     success, failed = service.sync_all_agents()
@@ -105,9 +111,11 @@ def main():
     p_apply.add_argument("-o", "--output", help="output markdown path (default: same name, .md)")
     p_apply.set_defaults(func=cmd_apply)
 
-    # sync-agents
-    p_sync = sub.add_parser("sync-agents", help="scan agents directory recursively and publish to Multica")
-    p_sync.set_defaults(func=cmd_sync_agents)
+    # sync-agent
+    p_sync = sub.add_parser("sync-agent", help="scan agents directory recursively and publish to target adapter")
+    p_sync.add_argument("--adapter", default="multica", choices=["multica"], help="target adapter to publish to (default: multica)")
+    p_sync.set_defaults(func=cmd_sync_agent)
 
     args = parser.parse_args()
     args.func(args)
+
