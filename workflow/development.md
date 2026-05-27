@@ -1,4 +1,4 @@
-> Canonical workflow definition: [`orchestrator-debate.yaml`](./orchestrator-debate.yaml)
+> Canonical workflow definition: [`development.yaml`](./development.yaml)
 # Orchestrator Debate
 
 PM-orchestrated multi-agent debate workflow for SDLC. Two debate layers (architecture + implementation) with HITL gate.

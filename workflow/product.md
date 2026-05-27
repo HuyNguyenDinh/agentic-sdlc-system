@@ -1,4 +1,4 @@
-> Canonical workflow definition: [`product-squad.yaml`](./product-squad.yaml)
+> Canonical workflow definition: [`product.yaml`](./product.yaml)
 # Product Squad
 
 Product Lead-orchestrated product discovery and PRD creation workflow. Two layers of debate (discovery brief + detailed PRD) with stakeholder HITL reviews.
