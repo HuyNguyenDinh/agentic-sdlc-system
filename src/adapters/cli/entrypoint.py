@@ -77,7 +77,7 @@ def cmd_sync_agent(args):
     repo = FSAgentRepository(base_path=agents_dir)
     
     if args.adapter == "multica":
-        pub = MulticaAdapter()
+        pub = MulticaAdapter(runtime_id=getattr(args, "runtime_id", None))
     else:
         print(f"Error: Unknown adapter '{args.adapter}'", file=sys.stderr)
         sys.exit(1)
@@ -114,6 +114,7 @@ def main():
     # sync-agent
     p_sync = sub.add_parser("sync-agent", help="scan agents directory recursively and publish to target adapter")
     p_sync.add_argument("--adapter", default="multica", choices=["multica"], help="target adapter to publish to (default: multica)")
+    p_sync.add_argument("--runtime-id", help="runtime ID for the multica adapter")
     p_sync.set_defaults(func=cmd_sync_agent)
 
     args = parser.parse_args()
