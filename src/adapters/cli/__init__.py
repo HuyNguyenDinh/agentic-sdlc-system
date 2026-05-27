@@ -1,0 +1,1 @@
+# CLI Adapter package initialization
