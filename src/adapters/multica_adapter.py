@@ -25,44 +25,45 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
             res.stderr = "multica: command not found"
             return res
 
-    def _resolve_agent_uuid(self, agent_slug: str) -> tuple[bool, str, str]:
-        """Resolve agent slug to UUID via 'multica agent list', then get instructions via 'multica agent get'.
-        Returns (found: bool, uuid: str, current_instructions: str).
+    def _get_agent_uuid(self, agent_slug: str) -> str:
+        """Resolve agent slug to UUID via 'multica agent list' if it's not already a UUID.
+        Returns the UUID, or empty string if not found.
         """
-        # First check if the slug is already a valid UUID format
         import re
-        is_uuid = bool(re.match(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", agent_slug))
-        
-        agent_uuid = agent_slug
-        if not is_uuid:
-            list_res = self._run_cmd(["multica", "agent", "list"])
-            if list_res.returncode == 0:
-                # Find matching row in list output
-                for line in list_res.stdout.splitlines()[1:]:  # skip header
-                    parts = line.split()
-                    if len(parts) >= 2 and parts[1] == agent_slug:
-                        agent_uuid = parts[0]
-                        break
-                
-                # If we parsed the list and still didn't find the slug, return False
-                if agent_uuid == agent_slug:
-                    return False, agent_slug, ""
-            else:
-                return False, agent_slug, ""
+        if bool(re.match(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", agent_slug)):
+            return agent_slug
+            
+        list_res = self._run_cmd(["multica", "agent", "list"])
+        if list_res.returncode == 0:
+            for line in list_res.stdout.splitlines()[1:]:  # skip header
+                parts = line.split()
+                if len(parts) >= 2 and parts[1] == agent_slug:
+                    return parts[0]
+        return ""
 
-        # Now get the agent details using the resolved UUID
+    def _get_agent_instructions(self, agent_uuid: str) -> tuple[bool, str]:
+        """Get agent instructions via 'multica agent get'. Returns (success, instructions)."""
+        if not agent_uuid:
+            return False, ""
         get_res = self._run_cmd(["multica", "agent", "get", agent_uuid])
-        if get_res.returncode != 0:
-            return False, agent_uuid, ""
-            
-        try:
-            data = json.loads(get_res.stdout)
-            if isinstance(data, dict):
-                return True, agent_uuid, data.get("instructions", "") or ""
-        except Exception:
-            pass
-            
-        return True, agent_uuid, ""
+        if get_res.returncode == 0:
+            try:
+                import json
+                data = json.loads(get_res.stdout)
+                if isinstance(data, dict):
+                    return True, data.get("instructions", "") or ""
+            except Exception:
+                pass
+            return True, ""
+        return False, ""
+
+    def _resolve_agent_uuid(self, agent_slug: str) -> tuple[bool, str, str]:
+        """Legacy helper: returns (found, uuid, instructions)."""
+        uuid = self._get_agent_uuid(agent_slug)
+        if not uuid:
+            return False, agent_slug, ""
+        success, instructions = self._get_agent_instructions(uuid)
+        return success, uuid, instructions
 
     def publish(self, entity: Union[Agent, Workflow] = None, *, agent: Agent = None, workflow: Workflow = None) -> bool:
         target = entity or agent or workflow
@@ -191,8 +192,8 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
         if workflow.agent_ids:
             print(f"  Registering {len(workflow.agent_ids)} agent(s) as squad members...")
             for agent_slug in workflow.agent_ids:
-                found, agent_uuid, _ = self._resolve_agent_uuid(agent_slug)
-                if not found:
+                agent_uuid = self._get_agent_uuid(agent_slug)
+                if not agent_uuid:
                     print(f"    ⚠ Agent '{agent_slug}' not found in Multica — skipping member registration", file=sys.stderr)
                     continue
 
