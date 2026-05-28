@@ -26,19 +26,43 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
             return res
 
     def _resolve_agent_uuid(self, agent_slug: str) -> tuple[bool, str, str]:
-        """Resolve agent slug to UUID via 'multica agent get'.
+        """Resolve agent slug to UUID via 'multica agent list', then get instructions via 'multica agent get'.
         Returns (found: bool, uuid: str, current_instructions: str).
         """
-        get_res = self._run_cmd(["multica", "agent", "get", agent_slug])
+        # First check if the slug is already a valid UUID format
+        import re
+        is_uuid = bool(re.match(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", agent_slug))
+        
+        agent_uuid = agent_slug
+        if not is_uuid:
+            list_res = self._run_cmd(["multica", "agent", "list"])
+            if list_res.returncode == 0:
+                # Find matching row in list output
+                for line in list_res.stdout.splitlines()[1:]:  # skip header
+                    parts = line.split()
+                    if len(parts) >= 2 and parts[1] == agent_slug:
+                        agent_uuid = parts[0]
+                        break
+                
+                # If we parsed the list and still didn't find the slug, return False
+                if agent_uuid == agent_slug:
+                    return False, agent_slug, ""
+            else:
+                return False, agent_slug, ""
+
+        # Now get the agent details using the resolved UUID
+        get_res = self._run_cmd(["multica", "agent", "get", agent_uuid])
         if get_res.returncode != 0:
-            return False, agent_slug, ""
+            return False, agent_uuid, ""
+            
         try:
             data = json.loads(get_res.stdout)
             if isinstance(data, dict):
-                return True, data.get("id", agent_slug), data.get("instructions", "") or ""
+                return True, agent_uuid, data.get("instructions", "") or ""
         except Exception:
             pass
-        return True, agent_slug, ""
+            
+        return True, agent_uuid, ""
 
     def publish(self, entity: Union[Agent, Workflow] = None, *, agent: Agent = None, workflow: Workflow = None) -> bool:
         target = entity or agent or workflow
@@ -126,8 +150,16 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
         if workflow.squad_leader and workflow.instructions:
             print(f"  Updating squad leader '{workflow.squad_leader}' instructions...")
             
-            # Fetch current instructions and actual ID for the squad leader agent
+            # Fetch current instructions and actual UUID for the squad leader agent
             found, actual_leader_id, current_instructions = self._resolve_agent_uuid(workflow.squad_leader)
+
+            if not found:
+                print(
+                    f"  ⚠ Squad leader '{workflow.squad_leader}' not found in Multica — "
+                    f"run 'sync-agent' first to create it, then re-run 'sync-workflow'.",
+                    file=sys.stderr,
+                )
+                return False
 
             start_marker = f"<!-- WORKFLOW_START: {workflow.id} -->"
             end_marker = f"<!-- WORKFLOW_END: {workflow.id} -->"
