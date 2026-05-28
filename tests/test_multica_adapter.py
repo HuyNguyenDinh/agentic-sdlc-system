@@ -5,10 +5,27 @@ from src.adapters.multica_adapter import MulticaAdapter
 from src.core.domain.models import Agent, Workflow
 
 
-def make_smart_mock(mock_list):
+def make_smart_mock(mock_list, initial_squads=None):
+    if initial_squads is None:
+        initial_squads = [('uuid-my-squad', 'my-squad'), ('uuid-kw-squad', 'kw-squad')]
+    created_squads = []
     def side_effect(args, **kwargs):
         if args[:3] == ["multica", "agent", "list"]:
             return MagicMock(returncode=0, stdout="ID NAME\nresolved-uuid coder\nresolved-leader-uuid product-lead-agent\nresolved-leader-uuid leader-agent\nuuid-leader lead-agent\nuuid-agent1 agent-one\nuuid-agent2 agent-two\nuuid-a agent-a\nuuid-b agent-b")
+        if args[:3] == ["multica", "squad", "list"]:
+            base = "ID NAME LEADER_ID MEMBERS\n"
+            for u, n in initial_squads:
+                base += f"{u} {n} lead 1\n"
+            for sq in created_squads:
+                base += f"uuid-{sq} {sq} lead 1\n"
+            return MagicMock(returncode=0, stdout=base)
+        if args[:3] == ["multica", "squad", "create"]:
+            if "--name" in args:
+                idx = args.index("--name")
+                created_squads.append(args[idx+1])
+            # still pop the mock list
+            if mock_list:
+                return mock_list.pop(0)
         if not mock_list:
             raise Exception(f"Unexpected subprocess call: {args}")
         return mock_list.pop(0)
@@ -106,7 +123,7 @@ class TestMulticaAdapter(unittest.TestCase):
     @patch("subprocess.run")
     def test_publish_workflow_create_flow(self, mock_run):
         # 1. Mock multica squad get command to return exit code 1 (squad does not exist)
-        mock_get = MagicMock(returncode=1)
+        # 1. (removed mock_get)
         # 2. Mock multica squad create command to return exit code 0 (success)
         mock_create = MagicMock(returncode=0)
         # 3. Mock multica agent get command for squad leader
@@ -119,7 +136,7 @@ class TestMulticaAdapter(unittest.TestCase):
         mock_agent2_get = MagicMock(returncode=0, stdout='{"id": "uuid-agent2", "instructions": ""}')
         mock_agent2_member = MagicMock(returncode=0)
         mock_run.side_effect = make_smart_mock([
-            mock_get, mock_create,
+            mock_create,
             mock_leader_get, mock_leader_update,
             mock_agent1_get, mock_agent1_member,
             mock_agent2_get, mock_agent2_member,
@@ -154,25 +171,26 @@ class TestMulticaAdapter(unittest.TestCase):
 
         # Verify squad member add calls use the resolved UUIDs
         mock_run.assert_any_call(
-            ["multica", "squad", "member", "add", "product-squad", "--member-id", "uuid-agent1", "--type", "agent"],
+            ["multica", "squad", "member", "add", "uuid-product-squad", "--member-id", "uuid-agent1", "--type", "agent"],
             capture_output=True, text=True, check=False
         )
         mock_run.assert_any_call(
-            ["multica", "squad", "member", "add", "product-squad", "--member-id", "uuid-agent2", "--type", "agent"],
+            ["multica", "squad", "member", "add", "uuid-product-squad", "--member-id", "uuid-agent2", "--type", "agent"],
             capture_output=True, text=True, check=False
         )
 
     @patch("subprocess.run")
     def test_publish_workflow_update_flow(self, mock_run):
+        initial = [('uuid-product-squad', 'product-squad')]
         # 1. Mock multica squad get command to return exit code 0 (squad exists)
-        mock_get = MagicMock(returncode=0)
-        # 2. Mock multica squad update command to return exit code 0 (success)
+        # 1. (removed mock_get)
+        # 2. Mock multica squad update
         mock_update = MagicMock(returncode=0)
         # 3. Mock multica agent get command for squad leader
         mock_leader_get = MagicMock(returncode=0, stdout='{"id": "resolved-leader-uuid", "instructions": "base instruction"}')
         # 4. Mock multica agent update command
         mock_leader_update = MagicMock(returncode=0)
-        mock_run.side_effect = make_smart_mock([mock_get, mock_update, mock_leader_get, mock_leader_update])
+        mock_run.side_effect = make_smart_mock([mock_update, mock_leader_get, mock_leader_update], initial_squads=initial)
         
         adapter = MulticaAdapter()
         # No agent_ids → no member registration calls
@@ -185,7 +203,7 @@ class TestMulticaAdapter(unittest.TestCase):
         
         # Verify squad update uses --description (not --instructions)
         mock_run.assert_any_call(
-            ["multica", "squad", "update", "product-squad", "--description", "Manage product features"],
+            ["multica", "squad", "update", "uuid-product-squad", "--description", "Manage product features"],
             capture_output=True, text=True, check=False
         )
 
@@ -214,10 +232,10 @@ class TestMulticaAdapter(unittest.TestCase):
     @patch("subprocess.run")
     def test_publish_workflow_failure_flow(self, mock_run):
         # 1. Mock multica squad get command to return exit code 1 (squad does not exist)
-        mock_get = MagicMock(returncode=1)
+        # 1. (removed mock_get)
         # 2. Mock multica squad create command to return exit code 1 (failure)
         mock_create = MagicMock(returncode=1, stderr="Failed to create squad")
-        mock_run.side_effect = make_smart_mock([mock_get, mock_create])
+        mock_run.side_effect = make_smart_mock([mock_create])
         
         adapter = MulticaAdapter()
         workflow = Workflow(id="product-squad", instructions="Description", squad_leader="leader-agent")
@@ -228,11 +246,10 @@ class TestMulticaAdapter(unittest.TestCase):
     @patch("subprocess.run")
     def test_publish_workflow_leader_update_failure(self, mock_run):
         # Squad creates successfully but leader update fails
-        mock_get = MagicMock(returncode=1)
         mock_create = MagicMock(returncode=0)
         mock_leader_get = MagicMock(returncode=0, stdout='{"id": "resolved-leader-uuid", "instructions": ""}')
         mock_leader_update = MagicMock(returncode=1, stderr="Agent not found")
-        mock_run.side_effect = make_smart_mock([mock_get, mock_create, mock_leader_get, mock_leader_update])
+        mock_run.side_effect = make_smart_mock([mock_create, mock_leader_get, mock_leader_update])
         
         adapter = MulticaAdapter()
         # No agent_ids so no member registration runs after leader fails
@@ -246,11 +263,11 @@ class TestMulticaAdapter(unittest.TestCase):
         """When the squad leader agent doesn't exist in Multica yet (sync-agent not run),
         the adapter should return False with a clear warning instead of passing the slug
         as a UUID to 'multica agent update' and getting a cryptic 'invalid agent id' error."""
-        mock_squad_get = MagicMock(returncode=1)
+        # (removed mock_squad_get)
         mock_squad_create = MagicMock(returncode=0)
         # Squad leader get returns non-zero → agent not yet created
         mock_leader_get = MagicMock(returncode=1)
-        mock_run.side_effect = make_smart_mock([mock_squad_get, mock_squad_create, mock_leader_get])
+        mock_run.side_effect = make_smart_mock([mock_squad_create, mock_leader_get])
 
         adapter = MulticaAdapter()
         workflow = Workflow(
@@ -273,6 +290,7 @@ class TestMulticaAdapter(unittest.TestCase):
 
     @patch("subprocess.run")
     def test_publish_workflow_idempotent_flow(self, mock_run):
+        initial = [('uuid-product-squad', 'product-squad')]
         # Verify that multiple runs replace the existing workflow instructions block instead of duplicating
         mock_get = MagicMock(returncode=0)
         mock_update = MagicMock(returncode=0)
@@ -286,7 +304,8 @@ class TestMulticaAdapter(unittest.TestCase):
         )
         mock_leader_get = MagicMock(returncode=0, stdout=f'{{"id": "resolved-leader-uuid", "instructions": {json.dumps(existing_instructions)}}}')
         mock_leader_update = MagicMock(returncode=0)
-        mock_run.side_effect = make_smart_mock([mock_get, mock_update, mock_leader_get, mock_leader_update])
+        initial = [('uuid-product-squad', 'product-squad')]
+        mock_run.side_effect = make_smart_mock([mock_update, mock_leader_get, mock_leader_update], initial_squads=initial)
         
         adapter = MulticaAdapter()
         # No agent_ids so no member registration calls
@@ -311,7 +330,7 @@ class TestMulticaAdapter(unittest.TestCase):
     @patch("subprocess.run")
     def test_publish_workflow_squad_members(self, mock_run):
         """Verify that each agent_id is resolved and added as a squad member."""
-        mock_squad_get = MagicMock(returncode=0)
+        # (removed mock_squad_get)
         mock_squad_update = MagicMock(returncode=0)
         mock_leader_get = MagicMock(returncode=0, stdout='{"id": "uuid-leader", "instructions": ""}')
         mock_leader_update = MagicMock(returncode=0)
@@ -324,7 +343,7 @@ class TestMulticaAdapter(unittest.TestCase):
         mock_c_get = MagicMock(returncode=1)
 
         mock_run.side_effect = make_smart_mock([
-            mock_squad_get, mock_squad_update,
+            mock_squad_update,
             mock_leader_get, mock_leader_update,
             mock_a_get, mock_a_add,
             mock_b_get, mock_b_add,
@@ -345,11 +364,11 @@ class TestMulticaAdapter(unittest.TestCase):
 
         # agent-a and agent-b should have been added by UUID
         mock_run.assert_any_call(
-            ["multica", "squad", "member", "add", "my-squad", "--member-id", "uuid-a", "--type", "agent"],
+            ["multica", "squad", "member", "add", "uuid-my-squad", "--member-id", "uuid-a", "--type", "agent"],
             capture_output=True, text=True, check=False
         )
         mock_run.assert_any_call(
-            ["multica", "squad", "member", "add", "my-squad", "--member-id", "uuid-b", "--type", "agent"],
+            ["multica", "squad", "member", "add", "uuid-my-squad", "--member-id", "uuid-b", "--type", "agent"],
             capture_output=True, text=True, check=False
         )
         # agent-c was not found, so no member add call for it

@@ -57,6 +57,22 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
             return True, ""
         return False, ""
 
+    def _get_squad_uuid(self, squad_slug: str) -> str:
+        """Resolve squad slug to UUID via 'multica squad list' if it's not already a UUID.
+        Returns the UUID, or empty string if not found.
+        """
+        import re
+        if bool(re.match(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", squad_slug)):
+            return squad_slug
+            
+        list_res = self._run_cmd(["multica", "squad", "list"])
+        if list_res.returncode == 0:
+            for line in list_res.stdout.splitlines()[1:]:  # skip header
+                parts = line.split()
+                if len(parts) >= 2 and parts[1] == squad_slug:
+                    return parts[0]
+        return ""
+
     def _resolve_agent_uuid(self, agent_slug: str) -> tuple[bool, str, str]:
         """Legacy helper: returns (found, uuid, instructions)."""
         uuid = self._get_agent_uuid(agent_slug)
@@ -118,16 +134,17 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
         print(f"Syncing workflow {workflow.id}...")
         
         # Check if squad exists in multica
-        check_res = self._run_cmd(["multica", "squad", "get", workflow.id])
+        squad_uuid = self._get_squad_uuid(workflow.id)
         
-        if check_res.returncode == 0:
+        if squad_uuid:
             # Squad exists, perform update
             print(f"  Squad '{workflow.id}' exists. Updating...")
             cmd = [
-                "multica", "squad", "update", workflow.id,
+                "multica", "squad", "update", squad_uuid,
             ]
             if workflow.description:
                 cmd += ["--description", workflow.description]
+            res = self._run_cmd(cmd)
         else:
             # Squad does not exist, perform create
             print(f"  Squad '{workflow.id}' not found. Creating...")
@@ -139,13 +156,20 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
             if workflow.description:
                 cmd += ["--description", workflow.description]
                 
-        res = self._run_cmd(cmd)
+            res = self._run_cmd(cmd)
+            # After creation, fetch the new UUID so we can use it below for member additions
+            if res.returncode == 0:
+                squad_uuid = self._get_squad_uuid(workflow.id)
+
         if res.returncode != 0:
             err_msg = res.stderr.strip() if res.stderr else "Unknown error"
             print(f"  ✗ Failed to sync squad '{workflow.id}': {err_msg}", file=sys.stderr)
             return False
         else:
             print(f"  ✓ Successfully synced squad '{workflow.id}'")
+            if not squad_uuid:
+                print(f"  ✗ Failed to resolve UUID for squad '{workflow.id}'", file=sys.stderr)
+                return False
 
         # Append workflow instructions to the squad leader agent
         if workflow.squad_leader and workflow.instructions:
@@ -198,7 +222,7 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
                     continue
 
                 member_cmd = [
-                    "multica", "squad", "member", "add", workflow.id,
+                    "multica", "squad", "member", "add", squad_uuid,
                     "--member-id", agent_uuid,
                     "--type", "agent",
                 ]
