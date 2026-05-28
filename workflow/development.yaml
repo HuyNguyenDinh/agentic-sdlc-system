@@ -36,19 +36,19 @@ agents:
 
   - id: coder-agent
     role: Software Developer
-    path: agents/coding/coder.md
+    path: agents/coding/coder-agent.md
 
   - id: code-critic-agent
     role: Code Reviewer
-    path: agents/coding/code-critic.md
+    path: agents/coding/code-critic-agent.md
 
   - id: qa-agent
     role: Quality Assurance
-    path: agents/qa/qa.md
+    path: agents/qa/qa-agent.md
 
   - id: qa-critic-agent
     role: QA Reviewer
-    path: agents/qa/qa-critic.md
+    path: agents/qa/qa-critic-agent.md
 
 steps:
   - id: initialization

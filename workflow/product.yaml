@@ -10,15 +10,15 @@ workflow:
 agents:
   - id: product-lead-agent
     role: Squad Leader & Orchestrator
-    path: agents/product/product-lead.md
+    path: agents/product/product-lead-agent.md
 
   - id: product-manager-agent
     role: Product Manager & PRD Writer
-    path: agents/product/product-manager.md
+    path: agents/product/product-manager-agent.md
 
   - id: product-critic-agent
     role: Product Critic & Reviewer
-    path: agents/product/product-critic.md
+    path: agents/product/product-critic-agent.md
 
 knowledge_sources:
   - id: llm-wiki
