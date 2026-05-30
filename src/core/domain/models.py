@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 @dataclass(frozen=True)
 class Agent:
@@ -7,6 +7,7 @@ class Agent:
     role: str
     instructions: str
     description: Optional[str] = None
+    iac_schema: Optional[Dict[str, Any]] = None
 
 
 @dataclass(frozen=True)
