@@ -1,0 +1,85 @@
+# Agent IaC Schema v1
+version: 1
+
+agent:
+  id: sa-agent
+  role: Solution Architect
+  path: agents/solution_architect/sa-agent.md
+  description: Design system architecture, evaluate technical tradeoffs, produce technical specifications
+
+  runtime:
+    model: default
+    temperature: 0.1
+    max_tokens: 8192
+    cache_enabled: true
+    max_turns: 5
+
+  knowledge:
+    bindings:
+      - source: gitnexus
+        mode: prefetch
+        injection: header
+        scope: ["codebase/architecture", "codebase/patterns", "codebase/decisions"]
+        access: ["read"]
+
+      - source: obsidian-wiki
+        mode: implicit
+        injection: header
+        scope: ["architecture", "standards", "tech-debt", "decisions"]
+        access: ["read", "write"]
+
+      - source: dependency-db
+        mode: on_demand
+        injection: inline
+        access: ["read"]
+
+    update_policy:
+      on_complete: push
+      target: obsidian-wiki
+      format: structured
+
+  instructions:
+    variables:
+      - name: project_scope
+        type: string
+        required: true
+
+      - name: existing_constraints
+        type: string
+        required: false
+        default: ""
+
+    inject_sections:
+      - knowledge_bindings
+      - runtime_config
+      - workflow_context
+      - error_handling
+
+    render_order:
+      - header_knowledge
+      - base_instructions
+      - runtime_parameters
+      - workflow_context
+
+  skills:
+    - architecture-design
+    - technical-review
+    - risk-assessment
+    - dependency-analysis
+
+# Knowledge source definitions (attached to agent)
+knowledge_sources:
+  - id: gitnexus
+    type: repository
+    description: Project git monorepo full history and codebase
+    connection: git+https://git.nexus.internal/project-core.git
+
+  - id: obsidian-wiki
+    type: wiki
+    description: Organizational technical knowledge base
+    connection: obsidian://vault/engineering-wiki
+
+  - id: dependency-db
+    type: external
+    description: Internal dependency vulnerability database
+    connection: https://deps.nexus.internal/api/v1

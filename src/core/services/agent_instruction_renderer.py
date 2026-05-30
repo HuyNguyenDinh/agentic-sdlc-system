@@ -81,22 +81,26 @@ class AgentInstructionRenderer:
         return current
 
     def _inject_knowledge_bindings(self, content: str, bindings: List[Dict[str, Any]]) -> tuple[str, int]:
-        """Inject knowledge bindings at appropriate positions in content."""
+        """Inject knowledge bindings as clean comment header at very top."""
         if not bindings:
             return content, 0
 
-        injected = 0
-        binding_section = "\n\n--- KNOWLEDGE CONTEXT ---\n"
+        footer = "\n### MANDATORY CONSTRAINT\n\n"
+        footer += "✅ **YOU MUST QUERY ALL ATTACHED KNOWLEDGE BASES TO VERIFY YOUR THINKING AND ANSWERBEFORE PRODUCING ANY OUTPUT.**\n"
+        footer += "✅ Do not start design work until you have read existing patterns, decisions and architecture from knowledge sources.\n"
+        footer += "✅ Cite knowledge sources when justifying architectural decisions.\n"
+    
+        # Append matrix to bottom
+        footer += "\n---\n### Knowledge Base Access Matrix\n\n"
+        footer += "| Source | Mode | Access | Scope |\n"
+        footer += "|--------|------|--------|-------|\n"
 
-        for binding in bindings:
-            if 'content' in binding:
-                binding_section += f"\n[{binding.get('id', 'unknown')}]: {binding['content']}\n"
-                injected += 1
+        for b in bindings:
+            access = "✏️ Read/Write" if 'write' in b.get('access', []) else "📖 Read Only"
+            footer += f"| `{b.get('source', 'unknown')}` | {b.get('mode', 'default')} | {access} | {', '.join(b.get('scope', []))} |\n"
 
-        if injected > 0:
-            content += binding_section
 
-        return content, injected
+        return content + footer, len(bindings)
 
     def add_render_hook(self, hook: callable) -> None:
         """Add post-render hook to pipeline."""

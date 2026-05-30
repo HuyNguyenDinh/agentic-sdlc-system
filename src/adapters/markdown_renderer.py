@@ -54,7 +54,7 @@ def _knowledge_base_protocol(ks: list[dict]) -> str:
     lines = [
         "### Knowledge Base Protocol",
         "",
-        "All agents in this squad **MUST** follow these knowledge base interaction rules:",
+        "You **MUST** to force all agents in this squad following these knowledge base interaction rules:",
         "",
     ]
     
@@ -241,8 +241,6 @@ def render_markdown(data: dict, yaml_rel: str = "") -> str:
     parts.append("## Workflow")
     parts.append("")
     parts.append(render_mermaid(data))
-    parts.append("")
-
     return "\n".join(parts)
 
 def render_file(yaml_path: str, md_path: str) -> None:
