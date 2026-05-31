@@ -51,6 +51,83 @@ class TestCLI(unittest.TestCase):
 
         self.assertTrue(mock_run_bootstrap.called)
 
+    @patch("src.adapters.cli.entrypoint.run_bootstrap_gitnexus")
+    def test_bootstrap_gitnexus_cli_monorepo_mode(self, mock_run_bootstrap_gitnexus):
+        test_args = [
+            "cli.py",
+            "bootstrap-gitnexus",
+            "--mode",
+            "monorepo",
+            "--repo",
+            "org/private-repo",
+            "--dry-run",
+        ]
+        with patch.object(sys, "argv", test_args):
+            with self.assertRaises(SystemExit) as cm:
+                main()
+            self.assertEqual(cm.exception.code, 0)
+
+        mock_run_bootstrap_gitnexus.assert_called_once()
+
+    @patch("src.adapters.cli.entrypoint.run_bootstrap_gitnexus")
+    def test_bootstrap_gitnexus_cli_multi_repo_mode(self, mock_run_bootstrap_gitnexus):
+        test_args = [
+            "cli.py",
+            "bootstrap-gitnexus",
+            "--mode",
+            "multi-repo",
+            "--repos",
+            "org/repo-a",
+            "org/repo-b",
+            "--group-name",
+            "my-team",
+            "--dry-run",
+        ]
+        with patch.object(sys, "argv", test_args):
+            with self.assertRaises(SystemExit) as cm:
+                main()
+            self.assertEqual(cm.exception.code, 0)
+
+        mock_run_bootstrap_gitnexus.assert_called_once()
+
+    @patch("src.adapters.cli.entrypoint.run_sync_workflow")
+    @patch("src.adapters.cli.entrypoint.run_sync_agent")
+    @patch("src.adapters.cli.entrypoint.install_gitnexus")
+    @patch("src.adapters.cli.entrypoint.install_skills_from_file")
+    @patch("src.adapters.cli.entrypoint.run_bootstrap")
+    def test_bootstrap_cli_success(self, mock_run_bootstrap, mock_install_skills, mock_install_gitnexus, mock_run_sync_agent, mock_run_sync_workflow):
+        test_args = [
+            "cli.py",
+            "bootstrap",
+            "--repo",
+            "org/private-kb",
+            "--workflow",
+            "workflow.yaml",
+            "--dry-run",
+        ]
+        with patch.object(sys, "argv", test_args):
+            with self.assertRaises(SystemExit) as cm:
+                main()
+            self.assertEqual(cm.exception.code, 0)
+
+        mock_run_bootstrap.assert_called_once()
+        mock_install_skills.assert_called_once()
+        mock_install_gitnexus.assert_called_once_with(dry_run=True)
+        mock_run_sync_agent.assert_called_once()
+        mock_run_sync_workflow.assert_called_once()
+
+    @patch("src.adapters.cli.entrypoint.install_skills_from_file")
+    @patch("src.adapters.cli.entrypoint.run_bootstrap")
+    def test_bootstrap_cli_error_returns_1(self, mock_run_bootstrap, mock_install_skills):
+        mock_install_skills.side_effect = RuntimeError("skills failed")
+        test_args = ["cli.py", "bootstrap", "--repo", "org/private-kb", "--dry-run"]
+        with patch.object(sys, "argv", test_args):
+            with self.assertRaises(SystemExit) as cm:
+                main()
+            self.assertEqual(cm.exception.code, 1)
+
+        mock_run_bootstrap.assert_called_once()
+
     @patch("src.adapters.cli.entrypoint.run_bootstrap")
     def test_bootstrap_wiki_cli_error_returns_1(self, mock_run_bootstrap):
         mock_run_bootstrap.side_effect = RuntimeError("Repository is required")

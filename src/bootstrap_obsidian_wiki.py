@@ -234,7 +234,7 @@ def _get_origin_repo_slug(vault_path: Path) -> str | None:
 def run_bootstrap(args: argparse.Namespace) -> None:
     repo_value = args.repo
     if not repo_value and not args.non_interactive:
-        repo_value = input("Enter private GitHub repository (owner/repo or URL): ").strip()
+        repo_value = input("Obsidian Wiki private repository (owner/repo or URL): ").strip()
 
     if not repo_value:
         raise RuntimeError("Repository is required. Provide --repo in non-interactive mode.")

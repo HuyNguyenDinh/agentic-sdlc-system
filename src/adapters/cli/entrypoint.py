@@ -9,8 +9,12 @@ from src.adapters.multica_adapter import MulticaAdapter
 from src.core.services.workflow_service import validate, EXAMPLE_WORKFLOW
 from src.adapters.markdown_renderer import render_file
 from src.core.services.workflow_sync_service import WorkflowSyncService
+from src.install_skills import install_skills_from_file, DEFAULT_SKILLS_FILE
 from src.bootstrap_obsidian_wiki import DEFAULT_VAULT_PATH, run_bootstrap, run_post_bootstrap_check
-from src.bootstrap_gitnexus import run_bootstrap as run_bootstrap_gitnexus
+from src.bootstrap_gitnexus import install_gitnexus, run_bootstrap as run_bootstrap_gitnexus
+
+
+DEFAULT_WORKFLOW = "workflow/orchestrator-debate.yaml"
 
 def cmd_create(args):
     path = Path(args.name)
@@ -73,6 +77,22 @@ def cmd_apply(args):
     print(f"Applied: {path} → {output}")
 
 def cmd_sync_agent(args):
+    try:
+        run_sync_agent(args)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    sys.exit(0)
+
+
+def run_sync_agent(args):
+    if getattr(args, "dry_run", False):
+        print(
+            f"[dry-run] sync-agent --adapter {args.adapter}"
+            + (f" --runtime-id {args.runtime_id}" if getattr(args, "runtime_id", None) else "")
+        )
+        return True
+
     # Determine agents directory relative to project root
     project_root = Path(__file__).resolve().parent.parent.parent.parent
     agents_dir = project_root / "agents"
@@ -89,26 +109,41 @@ def cmd_sync_agent(args):
     
     success, failed = service.sync_all_agents()
     if failed > 0:
+        raise RuntimeError(f"{failed} agent(s) failed to sync")
+    return success
+
+def cmd_sync_workflow(args):
+    try:
+        run_sync_workflow(args)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
     sys.exit(0)
 
-def cmd_sync_workflow(args):
-    path = Path(args.yaml)
+
+def run_sync_workflow(args):
+    workflow_value = getattr(args, "workflow", None) or getattr(args, "yaml", None)
+    path = Path(workflow_value)
     if not path.exists():
-        print(f"Error: {path} not found", file=sys.stderr)
-        sys.exit(1)
+        raise RuntimeError(f"{path} not found")
+
+    if getattr(args, "dry_run", False):
+        print(
+            f"[dry-run] sync-workflow {path} --adapter {args.adapter}"
+            + (f" --runtime-id {args.runtime_id}" if getattr(args, "runtime_id", None) else "")
+        )
+        return True
 
     if args.adapter == "multica":
         pub = MulticaAdapter(runtime_id=getattr(args, "runtime_id", None))
     else:
-        print(f"Error: Unknown adapter '{args.adapter}'", file=sys.stderr)
-        sys.exit(1)
+        raise RuntimeError(f"Unknown adapter '{args.adapter}'")
 
     service = WorkflowSyncService(publisher=pub)
     success = service.sync_workflow(str(path))
     if not success:
-        sys.exit(1)
-    sys.exit(0)
+        raise RuntimeError(f"Failed to sync workflow {path}")
+    return success
 
 
 def cmd_bootstrap_wiki(args):
@@ -131,6 +166,19 @@ def cmd_check_bootstrap(args):
 def cmd_bootstrap_gitnexus(args):
     try:
         run_bootstrap_gitnexus(args)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    sys.exit(0)
+
+
+def cmd_bootstrap(args):
+    try:
+        run_bootstrap(args)
+        install_skills_from_file(Path(args.skills_file), dry_run=args.dry_run)
+        install_gitnexus(dry_run=args.dry_run)
+        run_sync_agent(args)
+        run_sync_workflow(args)
     except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
@@ -171,6 +219,20 @@ def main():
     p_sync_wf.add_argument("--runtime-id", help="runtime ID for the target adapter")
     p_sync_wf.set_defaults(func=cmd_sync_workflow)
 
+    # bootstrap
+    p_bootstrap = sub.add_parser("bootstrap", help="bootstrap wiki, skills, GitNexus install, agents, and workflow sync")
+    p_bootstrap.add_argument("--repo", help="private GitHub repository (owner/repo or URL)")
+    p_bootstrap.add_argument("--branch", default="main", help="git branch to sync (default: main)")
+    p_bootstrap.add_argument("--vault-path", default=DEFAULT_VAULT_PATH, help=f"vault path (default: {DEFAULT_VAULT_PATH})")
+    p_bootstrap.add_argument("--non-interactive", action="store_true", help="fail instead of prompting when --repo is missing")
+    p_bootstrap.add_argument("--force", action="store_true", help="allow unsafe operations where supported")
+    p_bootstrap.add_argument("--dry-run", action="store_true", help="print actions without changing the system")
+    p_bootstrap.add_argument("--skills-file", default=str(DEFAULT_SKILLS_FILE), help=f"skills file to install (default: {DEFAULT_SKILLS_FILE})")
+    p_bootstrap.add_argument("--workflow", default=DEFAULT_WORKFLOW, help=f"workflow YAML to sync (default: {DEFAULT_WORKFLOW})")
+    p_bootstrap.add_argument("--adapter", default="multica", choices=["multica"], help="target adapter to publish to (default: multica)")
+    p_bootstrap.add_argument("--runtime-id", help="runtime ID for the multica adapter")
+    p_bootstrap.set_defaults(func=cmd_bootstrap)
+
     # bootstrap-wiki
     p_bootstrap_wiki = sub.add_parser("bootstrap-wiki", help="bootstrap obsidian-wiki runtime and cron sync")
     p_bootstrap_wiki.add_argument("--repo", help="private GitHub repository (owner/repo or URL)")
@@ -190,10 +252,10 @@ def main():
 
     # bootstrap-gitnexus
     p_bootstrap_gitnexus = sub.add_parser("bootstrap-gitnexus", help="bootstrap GitNexus runtime and analysis flow")
-    p_bootstrap_gitnexus.add_argument("--mode", choices=["single", "multi"], required=True, help="working mode")
-    p_bootstrap_gitnexus.add_argument("--repo", help="single repository input (owner/repo or URL)")
+    p_bootstrap_gitnexus.add_argument("--mode", choices=["monorepo", "multi-repo"], required=True, help="working mode")
+    p_bootstrap_gitnexus.add_argument("--repo", help="monorepo input (owner/repo or URL)")
     p_bootstrap_gitnexus.add_argument("--repos", nargs="*", help="multi-repo inputs (owner/repo or URL)")
-    p_bootstrap_gitnexus.add_argument("--group-name", help="GitNexus group name for multi mode")
+    p_bootstrap_gitnexus.add_argument("--group-name", help="GitNexus group name for multi-repo mode")
     p_bootstrap_gitnexus.add_argument("--dry-run", action="store_true", help="print actions without executing them")
     p_bootstrap_gitnexus.set_defaults(func=cmd_bootstrap_gitnexus)
 

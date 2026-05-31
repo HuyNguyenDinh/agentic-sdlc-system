@@ -21,19 +21,16 @@ def parse_skills(path: Path) -> list[str]:
     return lines
 
 
-def run(args: argparse.Namespace) -> None:
-    skills_file = Path(args.file)
-
+def install_skills_from_file(skills_file: Path, *, dry_run: bool = False) -> None:
     if not skills_file.exists():
-        print(f"Error: {skills_file} not found")
-        sys.exit(1)
+        raise RuntimeError(f"{skills_file} not found")
 
     skills = parse_skills(skills_file)
     if not skills:
         print("No skills found in", skills_file)
         return
 
-    if args.dry_run:
+    if dry_run:
         print("[dry-run] Would install:", len(skills), "skill(s)")
         for s in skills:
             print(f"  npx skills add {s} -y -g")
@@ -56,10 +53,17 @@ def run(args: argparse.Namespace) -> None:
             print(f"  ✓ Installed: {s}")
 
     if failed:
-        print(f"\n{failed} skill(s) failed to install")
+        raise RuntimeError(f"{failed} skill(s) failed to install")
+
+    print(f"\nAll {len(skills)} skill(s) installed successfully")
+
+
+def run(args: argparse.Namespace) -> None:
+    try:
+        install_skills_from_file(Path(args.file), dry_run=args.dry_run)
+    except RuntimeError as exc:
+        print(f"Error: {exc}")
         sys.exit(1)
-    else:
-        print(f"\nAll {len(skills)} skill(s) installed successfully")
 
 
 def main():

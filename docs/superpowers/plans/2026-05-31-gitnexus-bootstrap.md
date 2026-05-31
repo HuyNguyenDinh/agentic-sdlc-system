@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a dedicated GitNexus bootstrap command that installs GitNexus and runs single-repo or multi-repo analysis flows.
+**Goal:** Add a dedicated GitNexus bootstrap command that installs GitNexus and runs monorepo or multi-repo analysis flows.
 
 **Architecture:** Introduce a focused bootstrap module for GitNexus command execution, keep CLI wiring thin, and reuse the existing entrypoint pattern used by the Obsidian bootstrap. The bootstrap module will own repository normalization, mode selection, command construction, and external process execution so the CLI layer only parses arguments and delegates.
 
@@ -127,14 +127,14 @@ def run_bootstrap(args: argparse.Namespace) -> None:
     repos = args.repos or []
     repo = args.repo
 
-    if mode == "single" and not repo:
-        raise RuntimeError("--repo is required for single mode")
-    if mode == "multi" and not repos:
-        raise RuntimeError("--repos is required for multi mode")
+    if mode == "monorepo" and not repo:
+        raise RuntimeError("--repo is required for monorepo mode")
+    if mode == "multi-repo" and not repos:
+        raise RuntimeError("--repos is required for multi-repo mode")
 
     _run(build_gitnexus_install_command(), dry_run=args.dry_run)
 
-    if mode == "single":
+    if mode == "monorepo":
         resolved = normalize_repo_input(repo)
         _run(build_analyze_command(resolved), dry_run=args.dry_run)
         return
@@ -151,10 +151,10 @@ def run_bootstrap(args: argparse.Namespace) -> None:
 
 def build_parser(subparsers) -> None:
     parser = subparsers.add_parser("bootstrap-gitnexus", help="bootstrap GitNexus runtime and analysis flow")
-    parser.add_argument("--mode", choices=["single", "multi"], required=True, help="working mode")
-    parser.add_argument("--repo", help="single repository input (owner/repo or URL)")
+    parser.add_argument("--mode", choices=["monorepo", "multi-repo"], required=True, help="working mode")
+    parser.add_argument("--repo", help="monorepo input (owner/repo or URL)")
     parser.add_argument("--repos", nargs="*", help="multi-repo inputs (owner/repo or URL)")
-    parser.add_argument("--group-name", help="GitNexus group name for multi mode")
+    parser.add_argument("--group-name", help="GitNexus group name for multi-repo mode")
     parser.add_argument("--dry-run", action="store_true", help="print actions without executing them")
     parser.set_defaults(func=run_bootstrap)
 ```
@@ -200,4 +200,4 @@ Expected: PASS.
 
 - [ ] **Step 4: Commit the verification runbook note if needed**
 
-If the implementation changes any operator-facing behavior, add a short note to the repo docs describing how to use `bootstrap-gitnexus` in single and multi mode.
+If the implementation changes any operator-facing behavior, add a short note to the repo docs describing how to use `bootstrap-gitnexus` in monorepo and multi-repo mode.

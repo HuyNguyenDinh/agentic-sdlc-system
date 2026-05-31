@@ -38,6 +38,39 @@ Run a post-bootstrap check to confirm the env var, cron entry, and git remote ar
 python -m src.cli check-wiki-bootstrap --repo org/private-kb
 ```
 
+## Full Bootstrap
+
+Use the `bootstrap` command to bring up the full agent SDLC stack in one pass:
+
+```bash
+make bootstrap
+```
+
+This will:
+
+1. Bootstrap the Obsidian Wiki (requires a private `WIKI_REPO`).
+2. Install every skill listed in `skills.txt`.
+3. Install GitNexus globally with `npm install -g gitnexus` (install-only by default).
+4. Sync the agent definitions to the selected adapter.
+5. Sync the workflow YAML to the selected adapter.
+
+The umbrella command prompts for the `WIKI_REPO` (private repo used by the Obsidian Wiki bootstrap), `adapter`, `runtime ID`, and `workflow` when you do not pass them on the command line. It forwards `--adapter` and `--runtime-id` to the agent and workflow sync steps, so you can keep those targets aligned with the same runtime identity you use elsewhere.
+
+GitNexus analysis is opt-in from the umbrella flow. To enable analysis during `make bootstrap` set `INCLUDE_GITNEXUS_ANALYZE=1`. When enabled the Makefile will prompt for the GitNexus repo(s) (or you can pass `GITNEXUS_REPO` / `GITNEXUS_REPOS` on the command line).
+
+Examples:
+
+```bash
+# Run full bootstrap without GitNexus analysis (default)
+make bootstrap
+
+# Run full bootstrap and include GitNexus monorepo analysis (prompts if GITNEXUS_REPO unset)
+make bootstrap INCLUDE_GITNEXUS_ANALYZE=1 MODE=monorepo GITNEXUS_REPO=org/private-repo
+
+# Run full bootstrap and include GitNexus multi-repo group analysis
+make bootstrap INCLUDE_GITNEXUS_ANALYZE=1 MODE=multi-repo GITNEXUS_REPOS="org/a org/b" GROUP_NAME=my-group
+```
+
 ## GitNexus Bootstrap
 
 Use the `bootstrap-gitnexus` command to install and initialize GitNexus for repository codebase analysis and to build cross-repo contracts and links.
@@ -47,12 +80,12 @@ Use the `bootstrap-gitnexus` command to install and initialize GitNexus for repo
 - `npm` and `npx` available on the system.
 - Network access to any remote Git repositories you plan to analyze.
 
-### Single repository
+### Monorepo
 
-Run analysis for a single repository (accepts owner/repo slug or GitHub URL):
+Run analysis for a monorepo (accepts owner/repo slug or GitHub URL):
 
 ```bash
-make bootstrap-gitnexus MODE=single REPO=org/private-repo DRY_RUN=1
+make bootstrap-gitnexus MODE=monorepo GITNEXUS_REPO=org/private-repo DRY_RUN=1
 ```
 
 ### Multi-repository (group)
@@ -60,20 +93,21 @@ make bootstrap-gitnexus MODE=single REPO=org/private-repo DRY_RUN=1
 Create or reuse a GitNexus group, analyze multiple repositories, and sync the group:
 
 ```bash
-make bootstrap-gitnexus MODE=multi REPOS="org/repo-a org/repo-b" GROUP_NAME=my-team DRY_RUN=1
+make bootstrap-gitnexus MODE=multi-repo GITNEXUS_REPOS="org/repo-a org/repo-b" GROUP_NAME=my-team DRY_RUN=1
 ```
 
 ### Makefile
 
-There is a convenience Makefile target:
+There is a convenience Makefile target. If you omit `MODE`, it defaults to `monorepo`; if you omit the repo inputs, the target will prompt you interactively:
 
 ```bash
-make bootstrap-gitnexus MODE=single REPO=org/private-repo
-make bootstrap-gitnexus MODE=multi REPOS="org/a org/b" GROUP_NAME=my-group
+make bootstrap-gitnexus MODE=monorepo GITNEXUS_REPO=org/private-repo
+make bootstrap-gitnexus MODE=multi-repo GITNEXUS_REPOS="org/a org/b" GROUP_NAME=my-group
+make bootstrap-gitnexus
 ```
 
 ### What it does
 
 - Installs `gitnexus` globally via `npm install -g gitnexus` if needed (or prints the install command in `--dry-run`).
-- In `single` mode runs `npx gitnexus analyze <repo>`.
-- In `multi` mode creates/uses a group, analyzes each repo, attaches results to the group, then runs `npx gitnexus group sync`.
+- In `monorepo` mode runs `npx gitnexus analyze <repo>`.
+- In `multi-repo` mode creates/uses a group, analyzes each repo, attaches results to the group, then runs `npx gitnexus group sync`.

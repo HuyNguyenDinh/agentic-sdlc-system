@@ -12,8 +12,8 @@ Add a dedicated bootstrap command for GitNexus so the agent system can install a
 ## Scope
 The bootstrap must support two operating modes:
 
-- `single`: initialize one repository and run analysis directly on that repo.
-- `multi`: initialize a GitNexus group, analyze each repository in sequence, then sync the group so GitNexus can derive shared contracts and cross-links.
+- `monorepo`: initialize one repository and run analysis directly on that repo.
+- `multi-repo`: initialize a GitNexus group, analyze each repository in sequence, then sync the group so GitNexus can derive shared contracts and cross-links.
 
 The command must accept both local repository paths and GitHub repository URLs.
 
@@ -21,16 +21,16 @@ The command must accept both local repository paths and GitHub repository URLs.
 1. User runs the bootstrap command and selects the working mode.
 2. The command installs GitNexus globally with `npm install -g gitnexus` if it is not already available.
 3. The command resolves each input repo into a usable local repository target.
-4. In `single` mode, the command runs `npx gitnexus analyze <repo>` for the selected repository.
-5. In `multi` mode, the command creates or reuses a GitNexus group, loops over the repository list, pulls latest code for remote repositories when needed, analyzes each repository, and then syncs the group.
+4. In `monorepo` mode, the command runs `npx gitnexus analyze <repo>` for the selected repository.
+5. In `multi-repo` mode, the command creates or reuses a GitNexus group, loops over the repository list, pulls latest code for remote repositories when needed, analyzes each repository, and then syncs the group.
 
 ## Command Model
 Add a dedicated CLI entry point instead of extending the Obsidian bootstrap command.
 
 Suggested inputs:
 
-- `--mode single|multi`
-- `--repo` for a single repository
+- `--mode monorepo|multi-repo`
+- `--repo` for a monorepo repository
 - `--repos` for multi-repo execution
 - `--group-name` for multi-repo group identity
 - `--non-interactive` to fail instead of prompting
@@ -39,7 +39,7 @@ Suggested inputs:
 For remote repositories, the bootstrap should normalize GitHub URL input into repo identifiers and clone or update local working copies before analysis.
 
 ## Execution Details
-### Single repository mode
+### Monorepo mode
 - Ensure GitNexus is installed.
 - Resolve the repository input.
 - Run analysis on the repository with `npx gitnexus analyze <repo>`.
@@ -57,7 +57,7 @@ For remote repositories, the bootstrap should normalize GitHub URL input into re
 ## Error Handling
 - Missing `npm` or `npx`: fail with a clear installation error.
 - Invalid repository input: stop before any analysis starts.
-- One repository failing in multi mode: report the failed repository and continue only if the command explicitly supports best-effort execution; otherwise fail fast.
+- One repository failing in multi-repo mode: report the failed repository and continue only if the command explicitly supports best-effort execution; otherwise fail fast.
 - GitNexus command failures: surface the exact command and stderr output.
 
 ## Testing
