@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock
 import sys
 from pathlib import Path
 from src.adapters.cli.entrypoint import main
+from src.bootstrap_obsidian_wiki import DEFAULT_VAULT_PATH
 
 class TestCLI(unittest.TestCase):
     @patch("src.adapters.cli.entrypoint.WorkflowSyncService")
@@ -32,6 +33,59 @@ class TestCLI(unittest.TestCase):
             with self.assertRaises(SystemExit) as cm:
                 main()
             self.assertEqual(cm.exception.code, 1)
+
+    @patch("src.adapters.cli.entrypoint.run_bootstrap")
+    def test_bootstrap_wiki_cli_success(self, mock_run_bootstrap):
+        test_args = [
+            "cli.py",
+            "bootstrap-wiki",
+            "--repo",
+            "org/private-kb",
+            "--non-interactive",
+            "--dry-run",
+        ]
+        with patch.object(sys, "argv", test_args):
+            with self.assertRaises(SystemExit) as cm:
+                main()
+            self.assertEqual(cm.exception.code, 0)
+
+        self.assertTrue(mock_run_bootstrap.called)
+
+    @patch("src.adapters.cli.entrypoint.run_bootstrap")
+    def test_bootstrap_wiki_cli_error_returns_1(self, mock_run_bootstrap):
+        mock_run_bootstrap.side_effect = RuntimeError("Repository is required")
+        test_args = ["cli.py", "bootstrap-wiki", "--non-interactive"]
+        with patch.object(sys, "argv", test_args):
+            with self.assertRaises(SystemExit) as cm:
+                main()
+            self.assertEqual(cm.exception.code, 1)
+
+    @patch("src.adapters.cli.entrypoint.run_post_bootstrap_check")
+    def test_check_bootstrap_cli_success(self, mock_check):
+        test_args = [
+            "cli.py",
+            "check-wiki-bootstrap",
+            "--repo",
+            "org/private-kb",
+            "--branch",
+            "main",
+        ]
+        with patch.object(sys, "argv", test_args):
+            with self.assertRaises(SystemExit) as cm:
+                main()
+            self.assertEqual(cm.exception.code, 0)
+
+        self.assertTrue(mock_check.called)
+
+    @patch("src.adapters.cli.entrypoint.run_post_bootstrap_check")
+    def test_check_bootstrap_cli_error_returns_1(self, mock_check):
+        mock_check.side_effect = RuntimeError("Managed cron sync entry was not found in crontab")
+        test_args = ["cli.py", "check-wiki-bootstrap", "--repo", "org/private-kb"]
+        with patch.object(sys, "argv", test_args):
+            with self.assertRaises(SystemExit) as cm:
+                main()
+            self.assertEqual(cm.exception.code, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

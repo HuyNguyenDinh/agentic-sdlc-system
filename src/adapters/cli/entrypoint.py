@@ -9,6 +9,8 @@ from src.adapters.multica_adapter import MulticaAdapter
 from src.core.services.workflow_service import validate, EXAMPLE_WORKFLOW
 from src.adapters.markdown_renderer import render_file
 from src.core.services.workflow_sync_service import WorkflowSyncService
+from src.bootstrap_obsidian_wiki import DEFAULT_VAULT_PATH, run_bootstrap, run_post_bootstrap_check
+from src.bootstrap_gitnexus import run_bootstrap as run_bootstrap_gitnexus
 
 def cmd_create(args):
     path = Path(args.name)
@@ -108,6 +110,32 @@ def cmd_sync_workflow(args):
         sys.exit(1)
     sys.exit(0)
 
+
+def cmd_bootstrap_wiki(args):
+    try:
+        run_bootstrap(args)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    sys.exit(0)
+
+
+def cmd_check_bootstrap(args):
+    try:
+        run_post_bootstrap_check(args)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    sys.exit(0)
+
+def cmd_bootstrap_gitnexus(args):
+    try:
+        run_bootstrap_gitnexus(args)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    sys.exit(0)
+
 def main():
     parser = argparse.ArgumentParser(
         description="agentic-sdlc — Hexagonal IaC CLI for SDLC workflows"
@@ -142,6 +170,32 @@ def main():
     p_sync_wf.add_argument("--adapter", default="multica", choices=["multica"], help="target adapter to publish to (default: multica)")
     p_sync_wf.add_argument("--runtime-id", help="runtime ID for the target adapter")
     p_sync_wf.set_defaults(func=cmd_sync_workflow)
+
+    # bootstrap-wiki
+    p_bootstrap_wiki = sub.add_parser("bootstrap-wiki", help="bootstrap obsidian-wiki runtime and cron sync")
+    p_bootstrap_wiki.add_argument("--repo", help="private GitHub repository (owner/repo or URL)")
+    p_bootstrap_wiki.add_argument("--branch", default="main", help="git branch to sync (default: main)")
+    p_bootstrap_wiki.add_argument("--vault-path", default=DEFAULT_VAULT_PATH, help=f"vault path (default: {DEFAULT_VAULT_PATH})")
+    p_bootstrap_wiki.add_argument("--non-interactive", action="store_true", help="fail instead of prompting when --repo is missing")
+    p_bootstrap_wiki.add_argument("--force", action="store_true", help="allow unsafe operations where supported")
+    p_bootstrap_wiki.add_argument("--dry-run", action="store_true", help="print actions without changing the system")
+    p_bootstrap_wiki.set_defaults(func=cmd_bootstrap_wiki)
+
+    # check-wiki-bootstrap
+    p_check = sub.add_parser("check-wiki-bootstrap", help="verify obsidian-wiki cron, env var, and git remote setup")
+    p_check.add_argument("--repo", help="expected private GitHub repository (owner/repo or URL)")
+    p_check.add_argument("--branch", default="main", help="git branch in cron sync (default: main)")
+    p_check.add_argument("--vault-path", default=DEFAULT_VAULT_PATH, help=f"vault path (default: {DEFAULT_VAULT_PATH})")
+    p_check.set_defaults(func=cmd_check_bootstrap)
+
+    # bootstrap-gitnexus
+    p_bootstrap_gitnexus = sub.add_parser("bootstrap-gitnexus", help="bootstrap GitNexus runtime and analysis flow")
+    p_bootstrap_gitnexus.add_argument("--mode", choices=["single", "multi"], required=True, help="working mode")
+    p_bootstrap_gitnexus.add_argument("--repo", help="single repository input (owner/repo or URL)")
+    p_bootstrap_gitnexus.add_argument("--repos", nargs="*", help="multi-repo inputs (owner/repo or URL)")
+    p_bootstrap_gitnexus.add_argument("--group-name", help="GitNexus group name for multi mode")
+    p_bootstrap_gitnexus.add_argument("--dry-run", action="store_true", help="print actions without executing them")
+    p_bootstrap_gitnexus.set_defaults(func=cmd_bootstrap_gitnexus)
 
     args = parser.parse_args()
     args.func(args)

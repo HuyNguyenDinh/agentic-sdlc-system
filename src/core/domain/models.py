@@ -8,6 +8,7 @@ class Agent:
     instructions: str
     description: Optional[str] = None
     iac_schema: Optional[Dict[str, Any]] = None
+    iac_validation_errors: Optional[List[str]] = None
 
 
 @dataclass(frozen=True)

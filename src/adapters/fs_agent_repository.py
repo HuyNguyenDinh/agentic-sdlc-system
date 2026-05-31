@@ -23,17 +23,26 @@ class FSAgentRepository(AgentRepositoryPort):
             frontmatter = None
             content = raw_content
             iac_schema = None
+            iac_validation_errors = None
 
-            if raw_content.startswith("---\n"):
-                parts = raw_content.split("\n---\n", 2)
-                if len(parts) >= 2:
+            if raw_content.startswith("---"):
+                # Robust frontmatter extraction: capture between the first '---' and the next '---' line
+                m = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", raw_content, re.DOTALL)
+                if m:
                     try:
-                        frontmatter = yaml.safe_load(parts[1])
-                        content = parts[2].lstrip("\n")
+                        frontmatter = yaml.safe_load(m.group(1))
+                        content = m.group(2).lstrip("\n")
 
-                        # Validate and load IaC schema if present
+                        # Load IaC schema if present (validation is advisory)
+                        iac_validation_errors = None
                         if isinstance(frontmatter, dict) and "iac" in frontmatter:
-                            iac_schema = validate_agent_iac(frontmatter["iac"])
+                            try:
+                                errors = validate_agent_iac(frontmatter["iac"])
+                            except Exception:
+                                errors = ["validation-failed"]
+                            iac_validation_errors = errors if errors else None
+                            # Preserve provided iac block for downstream usage
+                            iac_schema = frontmatter["iac"]
                     except Exception:
                         # Silently ignore invalid frontmatter - fall back to full content
                         content = raw_content
@@ -70,7 +79,8 @@ class FSAgentRepository(AgentRepositoryPort):
                     role=role,
                     instructions=content,
                     description=role,
-                    iac_schema=iac_schema
+                    iac_schema=iac_schema,
+                    iac_validation_errors=iac_validation_errors
                 )
             )
         return sorted(agents, key=lambda a: a.id)

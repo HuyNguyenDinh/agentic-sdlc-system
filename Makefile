@@ -1,4 +1,4 @@
-.PHONY: create validate apply install-skills sync-agent sync-workflow test help
+.PHONY: create validate apply install-skills bootstrap-wiki sync-agent sync-workflow test help
 
 WORKFLOW ?= workflow/orchestrator-debate.yaml
 ADAPTER ?= multica
@@ -20,6 +20,12 @@ apply: ## Validate + render workflow YAML to markdown
 
 install-skills: ## Install all skills from skills.txt via npx skills add
 	$(PYTHON) -m src.install_skills
+
+bootstrap-wiki: ## Bootstrap obsidian-wiki runtime at ~/obsidian-wiki with cron sync
+	$(PYTHON) -m src.cli bootstrap-wiki
+
+bootstrap-gitnexus: ## Bootstrap GitNexus runtime and analyze repository(ies) (usage: make bootstrap-gitnexus MODE=single REPO=org/repo)
+	$(PYTHON) -m src.cli bootstrap-gitnexus --mode $(MODE) $(if $(REPO),--repo $(REPO)) $(if $(REPOS),--repos $(REPOS)) $(if $(GROUP_NAME),--group-name $(GROUP_NAME)) $(if $(DRY_RUN),--dry-run)
 
 sync-agent: ## Scan agents directory recursively and publish to target adapter (usage: make sync-agent ADAPTER=multica RUNTIME_ID=my-id)
 	$(PYTHON) -m src.cli sync-agent --adapter $(ADAPTER) $(if $(RUNTIME_ID),--runtime-id $(RUNTIME_ID))
