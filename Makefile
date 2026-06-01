@@ -26,6 +26,14 @@ install-skills: ## Install all skills from skills.txt via npx skills add
 
 INCLUDE_GITNEXUS_ANALYZE ?= 0
 
+# Examples:
+#   make bootstrap                                              # wiki + skills + agents + workflow (no GitNexus analysis)
+#   make bootstrap INCLUDE_GITNEXUS_ANALYZE=1                   # + monorepo (prompts for GITNEXUS_REPO)
+#   make bootstrap INCLUDE_GITNEXUS_ANALYZE=1 MODE=monorepo GITNEXUS_REPO=org/repo
+#   make bootstrap INCLUDE_GITNEXUS_ANALYZE=1 MODE=multi-repo GITNEXUS_REPOS="org/a org/b" GROUP_NAME=my-group
+#   make bootstrap-gitnexus MODE=monorepo GITNEXUS_REPO=org/repo
+#   make bootstrap-gitnexus MODE=multi-repo REPOS="org/a org/b" GROUP_NAME=my-group
+
 bootstrap: ## Bootstrap wiki, skills, GitNexus install, agents, and workflow sync (usage: make bootstrap [WIKI_REPO=org/repo] [ADAPTER=multica] [RUNTIME_ID=my-id] [WORKFLOW=workflow.yaml] [INCLUDE_GITNEXUS_ANALYZE=0|1])
 	@wiki_repo="$(WIKI_REPO)"; \
 	# `wiki_repo` is the private GitHub repository used to bootstrap the Obsidian Wiki
