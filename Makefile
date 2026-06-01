@@ -67,7 +67,7 @@ bootstrap: ## Bootstrap wiki, skills, agents, workflow sync (usage: make bootstr
 bootstrap-wiki: ## Bootstrap obsidian-wiki runtime at ~/obsidian-wiki with cron sync
 	$(PYTHON) -m src.cli bootstrap-wiki
 
-bootstrap-gitnexus: ## Bootstrap GitNexus runtime and analyze repository(ies) (usage: make bootstrap-gitnexus MODE=monorepo GITNEXUS_REPO=org/repo)
+bootstrap-gitnexus: ## Bootstrap GitNexus runtime and analyze repo(s) (usage: make bootstrap-gitnexus MODE=monorepo GITNEXUS_REPO=org/repo | MODE=multi-repo REPOS="org/a org/b" GROUP_NAME=my-group)
 	@mode="$(MODE)"; \
 	if [ "$$mode" = "monorepo" ]; then \
 		repo="$(REPO)"; \
