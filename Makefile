@@ -34,7 +34,7 @@ INCLUDE_GITNEXUS_ANALYZE ?= 0
 #   make bootstrap-gitnexus MODE=monorepo GITNEXUS_REPO=org/repo
 #   make bootstrap-gitnexus MODE=multi-repo REPOS="org/a org/b" GROUP_NAME=my-group
 
-bootstrap: ## Bootstrap wiki, skills, GitNexus install, agents, and workflow sync (usage: make bootstrap [WIKI_REPO=org/repo] [ADAPTER=multica] [RUNTIME_ID=my-id] [WORKFLOW=workflow.yaml] [INCLUDE_GITNEXUS_ANALYZE=0|1])
+bootstrap: ## Bootstrap wiki, skills, agents, workflow sync (usage: make bootstrap [WIKI_REPO=org/repo] [ADAPTER=multica] [WORKFLOW=...] [INCLUDE_GITNEXUS_ANALYZE=0|1] [MODE=monorepo|multi-repo] [GITNEXUS_REPOS="org/a org/b"] [GROUP_NAME=my-group])
 	@wiki_repo="$(WIKI_REPO)"; \
 	# `wiki_repo` is the private GitHub repository used to bootstrap the Obsidian Wiki
 	# (owner/repo or URL). Only prompt for this when running the wiki bootstrap step.
