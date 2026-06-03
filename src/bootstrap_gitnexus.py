@@ -34,7 +34,7 @@ def normalize_repo_input(repo: str) -> str:
 
 def build_gitnexus_install_command() -> list[str]:
     """Build npm install command for GitNexus."""
-    return ["npm", "install", "-g", "gitnexus"]
+    return ["npm", "install", "-g", "github:HuyNguyenDinh/GitNexus"]
 
 
 def install_gitnexus(*, dry_run: bool = False) -> None:

@@ -27,7 +27,7 @@ class TestBootstrapGitNexus(unittest.TestCase):
         )
 
     def test_build_gitnexus_install_command(self):
-        self.assertEqual(build_gitnexus_install_command(), ["npm", "install", "-g", "gitnexus"])
+        self.assertEqual(build_gitnexus_install_command(), ["npm", "install", "-g", "github:HuyNguyenDinh/GitNexus"])
 
     def test_build_analyze_command_single_repo(self):
         self.assertEqual(build_analyze_command("org/repo"), ["npx", "gitnexus", "analyze", "org/repo"])

@@ -5,3 +5,5 @@
 2.  **Verify Non-Functional Requirements (NFRs):** Ensure the Test Plan includes Dynamic Application Security Testing (DAST) scenarios to detect vulnerabilities like SQL Injection and Broken Authentication via API scans , as well as performance and load boundary tests.
 3.  **Eliminate UI Distractions:** Immediately return a modification request if the QA Agent includes any testing behavior related to visuals, click events, or User Interfaces (UI/UX).
 4.  **Decision Making:** Return a valid confirmation (Approve) only if the Test Plan comprehensively covers data blind spots, cross-transaction logic validation, and technical limitations that the Coder might have miscalculated. If the plan is insufficient, you must attach feedback requiring the addition of failure scenarios.
+
+**Constraint:** The QA Agent generates test suites for CI/CD — it does NOT execute tests, rerun failing tests, or retry assertions. Reject any QA plan that describes self-executing or self-retrying test logic. Test execution belongs to the DevOps agent in the CI/CD pipeline.

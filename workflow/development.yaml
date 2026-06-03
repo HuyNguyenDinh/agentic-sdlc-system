@@ -50,6 +50,10 @@ agents:
     role: QA Reviewer
     path: agents/qa/qa-critic-agent.md
 
+  - id: devops-agent
+    role: DevOps & CI/CD Engineer
+    path: agents/devops/devops-agent.md
+
 steps:
   - id: initialization
     type: delegate
@@ -111,9 +115,25 @@ steps:
 
   - id: execution
     type: delegate
-    description: Workers write code and test suites
+    description: Coder writes application code, QA generates test suites
     actor: [coder-agent, qa-agent]
     input: approved-implementation-plans
+    max_turn: 3
+    on_max_turn_reached: cicd-setup
+
+  - id: cicd-setup
+    type: delegate
+    description: DevOps configures CI/CD pipeline to run test suites
+    actor: devops-agent
+    input: test-suites
+    output: cicd-pipeline
+
+  - id: hitl-execution
+    type: hitl
+    description: Human reviews execution/test results before completion
+    artifact: execution-results
+    on_approved: completion
+    on_rejected: execution
 
   - id: completion
     type: delegate

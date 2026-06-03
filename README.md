@@ -50,7 +50,7 @@ This will:
 
 1. Bootstrap the Obsidian Wiki (requires a private `WIKI_REPO`).
 2. Install every skill listed in `skills.txt`.
-3. Install GitNexus globally with `npm install -g gitnexus` (install-only by default).
+3. Install GitNexus globally with `npm install -g github:HuyNguyenDinh/GitNexus` (install-only by default).
 4. Sync the agent definitions to the selected adapter.
 5. Sync the workflow YAML to the selected adapter.
 
@@ -108,6 +108,6 @@ make bootstrap-gitnexus
 
 ### What it does
 
-- Installs `gitnexus` globally via `npm install -g gitnexus` if needed (or prints the install command in `--dry-run`).
+- Installs `github:HuyNguyenDinh/GitNexus` globally via `npm install -g github:HuyNguyenDinh/GitNexus` if needed (or prints the install command in `--dry-run`).
 - In `monorepo` mode runs `npx gitnexus analyze <repo>`.
 - In `multi-repo` mode creates/uses a group, analyzes each repo, attaches results to the group, then runs `npx gitnexus group sync`.
