@@ -231,14 +231,15 @@ The current `coder-agent` combines exploration, planning, and implementation in 
 
 ## Cost Model
 
-| Agent | Model Tier | Estimated Cost % |
-|-------|-----------|------------------|
-| Code-Explorer | Cheap | ~10% |
-| Code-Planner | Expensive | ~70% (planning + review) |
-| Code-Implementer | Cheap | ~20% |
-| **Total** | | **~100% of single expensive agent** |
+| Agent | Model Tier | Relative Cost |
+|-------|-----------|---------------|
+| Code-Explorer | Cheap | 0.1x |
+| Code-Planner | Expensive | 1.0x (runs twice: plan + review) |
+| Code-Implementer | Cheap | 0.1x |
+| **Total** | | **~1.2x expensive-model-equivalent** |
 
-**Savings:** ~60-70% vs. using expensive model for all phases.
+**Comparison:** Old coder-agent used expensive model for explore + plan + implement + debate (~3-4x expensive-model-equivalent).  
+**Savings:** ~60-70% reduction in expensive model usage.
 
 ---
 
