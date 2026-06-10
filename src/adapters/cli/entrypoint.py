@@ -12,6 +12,7 @@ from src.core.services.workflow_sync_service import WorkflowSyncService
 from src.install_skills import install_skills_from_file, DEFAULT_SKILLS_FILE
 from src.bootstrap_obsidian_wiki import DEFAULT_VAULT_PATH, run_bootstrap, run_post_bootstrap_check
 from src.bootstrap_gitnexus import install_gitnexus, run_bootstrap as run_bootstrap_gitnexus
+from src.bootstrap_multica_skills import sync_skills_to_multica, assign_skills_to_all_agents
 
 
 DEFAULT_WORKFLOW = "workflow/orchestrator-debate.yaml"
@@ -172,6 +173,25 @@ def cmd_bootstrap_gitnexus(args):
     sys.exit(0)
 
 
+def cmd_bootstrap_skills(args):
+    try:
+        run_bootstrap_skills(args)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    sys.exit(0)
+
+
+def run_bootstrap_skills(args):
+    skill_ids = sync_skills_to_multica(dry_run=args.dry_run)
+    if not skill_ids:
+        if not args.dry_run:
+            print("No skills to assign. Check that local skills exist and are importable.")
+            return
+        return
+    assign_skills_to_all_agents(skill_ids, dry_run=args.dry_run)
+
+
 def cmd_bootstrap(args):
     try:
         run_bootstrap(args)
@@ -179,6 +199,7 @@ def cmd_bootstrap(args):
         install_gitnexus(dry_run=args.dry_run)
         run_sync_agent(args)
         run_sync_workflow(args)
+        run_bootstrap_skills(args)
     except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
@@ -258,6 +279,11 @@ def main():
     p_bootstrap_gitnexus.add_argument("--group-name", help="GitNexus group name for multi-repo mode")
     p_bootstrap_gitnexus.add_argument("--dry-run", action="store_true", help="print actions without executing them")
     p_bootstrap_gitnexus.set_defaults(func=cmd_bootstrap_gitnexus)
+
+    # bootstrap-skills
+    p_bootstrap_skills = sub.add_parser("bootstrap-skills", help="import local skills into Multica workspace and assign to all agents")
+    p_bootstrap_skills.add_argument("--dry-run", "-n", action="store_true", help="print actions without executing")
+    p_bootstrap_skills.set_defaults(func=cmd_bootstrap_skills)
 
     args = parser.parse_args()
     args.func(args)
