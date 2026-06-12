@@ -1,15 +1,15 @@
 workflow:
   name: product-squad
   description: >
-    Product Lead-orchestrated product discovery and PRD creation workflow.
-    Two layers of debate (discovery brief + detailed PRD) with stakeholder HITL reviews.
+    Product Lead-orchestrated product strategy and PRD creation workflow.
+    Two layers of debate (strategy brief + detailed PRD) with stakeholder HITL reviews.
 
   max_turn: 3
   squad_leader: product-lead-agent
 
 agents:
   - id: product-lead-agent
-    role: Squad Leader & Orchestrator
+    role: Squad Leader, Strategist & Orchestrator
     path: agents/product/product-lead-agent.md
 
   - id: product-manager-agent
@@ -17,7 +17,7 @@ agents:
     path: agents/product/product-manager-agent.md
 
   - id: product-critic-agent
-    role: Product Critic & Reviewer
+    role: Product Critic & Adversarial Reviewer
     path: agents/product/product-critic-agent.md
 
 knowledge_sources:
@@ -32,35 +32,35 @@ knowledge_sources:
     access: [read]
 
 steps:
-  - id: discovery
+  - id: strategy-drafting
     type: delegate
-    description: PM drafts discovery brief from raw feature request
-    actor: product-manager-agent
-    output: discovery-brief
+    description: Product Lead drafts strategy, GTM, and metrics from raw idea
+    actor: product-lead-agent
+    output: strategy-brief
 
-  - id: discovery-debate
+  - id: strategy-debate
     type: debate
-    description: PM and Critic debate the discovery brief
-    actor: product-manager-agent
+    description: Lead and Critic debate the strategy brief
+    actor: product-lead-agent
     critic: product-critic-agent
-    input: discovery-brief
-    artifact: finalized-discovery-brief
+    input: strategy-brief
+    artifact: finalized-strategy-brief
     max_turn: 3
-    on_approved: discovery-review
-    on_max_turn_reached: discovery-review
+    on_approved: strategy-review
+    on_max_turn_reached: strategy-review
 
-  - id: discovery-review
+  - id: strategy-review
     type: hitl
-    description: Stakeholder reviews discovery brief
-    artifact: finalized-discovery-brief
+    description: Stakeholder reviews strategy brief
+    artifact: finalized-strategy-brief
     on_approved: prd-drafting
-    on_rejected: discovery
+    on_rejected: strategy-drafting
 
   - id: prd-drafting
     type: delegate
-    description: PM writes detailed PRD from approved brief
+    description: PM writes detailed PRD and User Stories from approved strategy
     actor: product-manager-agent
-    input: finalized-discovery-brief
+    input: finalized-strategy-brief
     output: draft-prd
 
   - id: prd-debate
@@ -83,7 +83,7 @@ steps:
 
   - id: packaging
     type: delegate
-    description: Product Lead packages approved PRD and exports to KB
+    description: Product Lead packages approved artifacts and exports to KB
     actor: product-lead-agent
     input: prd
     output: product-package
