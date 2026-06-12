@@ -1,16 +1,15 @@
 > Canonical workflow definition: [`product.yaml`](./product.yaml)
 # Product Squad
 
-Product Lead-orchestrated product discovery and PRD creation workflow. Two layers of debate (discovery brief + detailed PRD) with stakeholder HITL reviews.
-
+Product Lead-orchestrated product strategy and PRD creation workflow. Two layers of debate (strategy brief + detailed PRD) with stakeholder HITL reviews.
 
 ## Agents
 
 | Agent | Role | Definition |
 |-------|------|------------|
-| `product-lead-agent` | Squad Leader & Orchestrator | `agents/product/product-lead.md` |
-| `product-manager-agent` | Product Manager & PRD Writer | `agents/product/product-manager.md` |
-| `product-critic-agent` | Product Critic & Reviewer | `agents/product/product-critic.md` |
+| `product-lead-agent` | Squad Leader, Strategist & Orchestrator | `agents/product/product-lead-agent.md` |
+| `product-manager-agent` | Product Manager & PRD Writer | `agents/product/product-manager-agent.md` |
+| `product-critic-agent` | Product Critic & Adversarial Reviewer | `agents/product/product-critic-agent.md` |
 
 ## Knowledge Sources
 
@@ -34,27 +33,27 @@ All agents in this squad **MUST** follow these knowledge base interaction rules:
 
 ```mermaid
 flowchart TB
-    Start([PM receives raw PRD])
-    step_discovery["1. Product Manager & PRD Writer<br/>PM drafts discovery brief from<br/>raw feature request"]
-    Start --> step_discovery
-    subgraph step_discovery-debate ["2. Debate: PM and Critic debate the<br/>discovery brief"]
-        discovery-debate_actor["Product Manager & PRD Writer"]
-        discovery-debate_critic["Product Critic & Reviewer"]
-        discovery-debate_actor --> discovery-debate_critic
-        discovery-debate_critic -->|rejected| discovery-debate_actor
-        discovery-debate_actor -.->|max_turn reached| step_discovery-review
-        discovery-debate_critic -->|approved| step_discovery-review
+    Start([Lead receives raw idea])
+    step_strategy-drafting["1. Squad Leader, Strategist & Orchestrator<br/>Lead drafts strategy, GTM, and metrics<br/>from raw idea"]
+    Start --> step_strategy-drafting
+    subgraph step_strategy-debate ["2. Debate: Lead and Critic debate the<br/>strategy brief"]
+        strategy-debate_actor["Squad Leader, Strategist & Orchestrator"]
+        strategy-debate_critic["Product Critic & Adversarial Reviewer"]
+        strategy-debate_actor --> strategy-debate_critic
+        strategy-debate_critic -->|rejected| strategy-debate_actor
+        strategy-debate_actor -.->|max_turn reached| step_strategy-review
+        strategy-debate_critic -->|approved| step_strategy-review
     end
-    step_discovery --> step_discovery-debate
-    step_discovery-review{{"3. HITL: Stakeholder reviews discovery<br/>brief"}}
-    step_discovery-debate --> step_discovery-review
-    step_discovery-review -->|approved| step_prd-drafting
-    step_discovery-review -->|rejected| step_discovery
-    step_prd-drafting["4. Product Manager & PRD Writer<br/>PM writes detailed PRD from<br/>approved brief"]
-    step_discovery-review --> step_prd-drafting
+    step_strategy-drafting --> step_strategy-debate
+    step_strategy-review{{"3. HITL: Stakeholder reviews strategy<br/>brief"}}
+    step_strategy-debate --> step_strategy-review
+    step_strategy-review -->|approved| step_prd-drafting
+    step_strategy-review -->|rejected| step_strategy-drafting
+    step_prd-drafting["4. Product Manager & PRD Writer<br/>PM writes detailed PRD and User Stories<br/>from approved strategy"]
+    step_strategy-review --> step_prd-drafting
     subgraph step_prd-debate ["5. Debate: PM and Critic debate the PRD"]
         prd-debate_actor["Product Manager & PRD Writer"]
-        prd-debate_critic["Product Critic & Reviewer"]
+        prd-debate_critic["Product Critic & Adversarial Reviewer"]
         prd-debate_actor --> prd-debate_critic
         prd-debate_critic -->|rejected| prd-debate_actor
         prd-debate_actor -.->|max_turn reached| step_prd-review
@@ -65,11 +64,11 @@ flowchart TB
     step_prd-debate --> step_prd-review
     step_prd-review -->|approved| step_packaging
     step_prd-review -->|rejected| step_prd-drafting
-    step_packaging["7. Squad Leader & Orchestrator<br/>Product Lead packages approved<br/>PRD and exports to KB"]
+    step_packaging["7. Squad Leader, Strategist & Orchestrator<br/>Lead packages approved artifacts and<br/>exports to KB"]
     step_prd-review --> step_packaging
     step_packaging --> End
     End([Done])
-    style step_discovery-review fill:#FF9800,color:#fff
+    style step_strategy-review fill:#FF9800,color:#fff
     style step_prd-review fill:#FF9800,color:#fff
     style Start fill:#4CAF50,color:#fff
     style End fill:#4CAF50,color:#fff
