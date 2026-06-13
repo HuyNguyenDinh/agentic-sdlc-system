@@ -1,0 +1,6 @@
+version: 1
+agent: sa-critic-agent
+
+pull:
+  - skills/components/solution_architect
+  - skills/components/shared

@@ -1,0 +1,6 @@
+version: 1
+agent: product-critic-agent
+
+pull:
+  - skills/components/product
+  - skills/components/shared

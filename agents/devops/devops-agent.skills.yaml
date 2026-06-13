@@ -1,0 +1,6 @@
+version: 1
+agent: devops-agent
+
+pull:
+  - skills/components/devops
+  - skills/components/shared

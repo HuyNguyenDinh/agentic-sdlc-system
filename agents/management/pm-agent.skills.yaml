@@ -1,0 +1,6 @@
+version: 1
+agent: pm-agent
+
+pull:
+  - skills/components/management
+  - skills/components/shared

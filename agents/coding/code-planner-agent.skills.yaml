@@ -1,0 +1,6 @@
+version: 1
+agent: code-planner-agent
+
+pull:
+  - skills/components/coding
+  - skills/components/shared

@@ -1,0 +1,6 @@
+version: 1
+agent: coder-agent
+
+pull:
+  - skills/components/coding
+  - skills/components/shared
