@@ -61,13 +61,19 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
             return True
 
         skill_names = self._sidecar_service.get_skills_for_agent(agent_id)
-        skill_ids = self._get_multica_skill_ids(skill_names)
+        if not skill_names:
+            return True
 
+        skill_ids = self._get_multica_skill_ids(skill_names)
         if not skill_ids:
             print(f"  ✗ No Multica skill IDs resolved for '{agent_id}'", file=sys.stderr)
             return False
 
         agent_uuid = self._get_agent_uuid(agent_id)
+        if not agent_uuid:
+            print(f"  ✗ Could not resolve UUID for '{agent_id}'", file=sys.stderr)
+            return False
+
         res = self._run_cmd([
             "multica", "agent", "skills", "set", agent_uuid,
             "--skill-ids", ",".join(skill_ids),
