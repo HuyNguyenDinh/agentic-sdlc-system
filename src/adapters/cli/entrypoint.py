@@ -9,7 +9,7 @@ from src.adapters.multica_adapter import MulticaAdapter
 from src.core.services.workflow_service import validate, EXAMPLE_WORKFLOW
 from src.adapters.markdown_renderer import render_file
 from src.core.services.workflow_sync_service import WorkflowSyncService
-from src.install_skills import install_skills_from_file, DEFAULT_SKILLS_FILE
+from src.install_skills import install_skills_from_catalog
 from src.bootstrap_obsidian_wiki import DEFAULT_VAULT_PATH, run_bootstrap, run_post_bootstrap_check
 from src.bootstrap_gitnexus import install_gitnexus, run_bootstrap as run_bootstrap_gitnexus
 from src.bootstrap_multica_skills import sync_skills_to_multica, assign_skills_to_all_agents
@@ -195,7 +195,7 @@ def run_bootstrap_skills(args):
 def cmd_bootstrap(args):
     try:
         run_bootstrap(args)
-        install_skills_from_file(Path(args.skills_file), dry_run=args.dry_run)
+        install_skills_from_catalog(dry_run=args.dry_run)
         install_gitnexus(dry_run=args.dry_run)
         run_sync_agent(args)
         run_sync_workflow(args)
@@ -248,7 +248,7 @@ def main():
     p_bootstrap.add_argument("--non-interactive", action="store_true", help="fail instead of prompting when --repo is missing")
     p_bootstrap.add_argument("--force", action="store_true", help="allow unsafe operations where supported")
     p_bootstrap.add_argument("--dry-run", action="store_true", help="print actions without changing the system")
-    p_bootstrap.add_argument("--skills-file", default=str(DEFAULT_SKILLS_FILE), help=f"skills file to install (default: {DEFAULT_SKILLS_FILE})")
+    p_bootstrap.add_argument("--skills-file", default=None, help="legacy skills file path (deprecated; catalog is used by default)")
     p_bootstrap.add_argument("--workflow", default=DEFAULT_WORKFLOW, help=f"workflow YAML to sync (default: {DEFAULT_WORKFLOW})")
     p_bootstrap.add_argument("--adapter", default="multica", choices=["multica"], help="target adapter to publish to (default: multica)")
     p_bootstrap.add_argument("--runtime-id", help="runtime ID for the multica adapter")

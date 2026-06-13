@@ -93,7 +93,7 @@ class TestCLI(unittest.TestCase):
     @patch("src.adapters.cli.entrypoint.run_sync_workflow")
     @patch("src.adapters.cli.entrypoint.run_sync_agent")
     @patch("src.adapters.cli.entrypoint.install_gitnexus")
-    @patch("src.adapters.cli.entrypoint.install_skills_from_file")
+    @patch("src.adapters.cli.entrypoint.install_skills_from_catalog")
     @patch("src.adapters.cli.entrypoint.run_bootstrap")
     def test_bootstrap_cli_success(self, mock_run_bootstrap, mock_install_skills, mock_install_gitnexus, mock_run_sync_agent, mock_run_sync_workflow):
         test_args = [
@@ -116,7 +116,7 @@ class TestCLI(unittest.TestCase):
         mock_run_sync_agent.assert_called_once()
         mock_run_sync_workflow.assert_called_once()
 
-    @patch("src.adapters.cli.entrypoint.install_skills_from_file")
+    @patch("src.adapters.cli.entrypoint.install_skills_from_catalog")
     @patch("src.adapters.cli.entrypoint.run_bootstrap")
     def test_bootstrap_cli_error_returns_1(self, mock_run_bootstrap, mock_install_skills):
         mock_install_skills.side_effect = RuntimeError("skills failed")
