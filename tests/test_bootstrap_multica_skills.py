@@ -95,9 +95,10 @@ class TestSyncSkillsDryRun(unittest.TestCase):
                 from src.bootstrap_multica_skills import sync_skills_to_multica
                 result = sync_skills_to_multica(catalog=mock_catalog, dry_run=True)
 
-        # _run_cmd should NOT be called for actual skill creation in dry run
-        # (create_or_update_skill may call get_multica_skills which calls _run_cmd once for listing,
-        #  but must NOT call 'multica skill create')
+        # dry-run returns an empty list (no real IDs created)
+        self.assertEqual(result, [])
+
+        # _run_cmd must NOT be called for actual skill creation
         for c in mock_run_cmd.call_args_list:
             cmd_args = c.args[0] if c.args else c.kwargs.get("args", [])
             self.assertFalse(

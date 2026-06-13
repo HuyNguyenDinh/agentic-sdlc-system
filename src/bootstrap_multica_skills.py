@@ -7,12 +7,9 @@ separately by MulticaAdapter._assign_sidecar_skills() during sync-agent.
 """
 
 import json
-import os
 import subprocess
 import sys
-import time
 from pathlib import Path
-from typing import Optional
 
 from src.core.services.skills_catalog_service import SkillsCatalogService
 
@@ -62,14 +59,12 @@ def get_multica_skills() -> dict[str, str]:
     return skills
 
 
-def create_or_update_skill(name: str, skill_md_path: Path, *, dry_run: bool = False) -> Optional[str]:
+def create_or_update_skill(name: str, skill_md_path: Path, *, dry_run: bool = False) -> str | None:
     """Create (or update) a skill in Multica from local SKILL.md. Returns skill ID."""
     existing = get_multica_skills()
 
     if name in existing:
         skill_id = existing[name]
-        desc_line = skill_md_path.read_text().splitlines()[0] if skill_md_path.exists() else ""
-        desc = desc_line.strip().lstrip("# ")[:200] if desc_line else name
 
         if dry_run:
             print(f"  [dry-run] skill update {skill_id} --name {name}")
