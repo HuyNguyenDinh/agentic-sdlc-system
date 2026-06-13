@@ -383,5 +383,91 @@ class TestMulticaAdapter(unittest.TestCase):
         with self.assertRaises(ValueError):
             adapter.publish(None)
 
+
+# ---------------------------------------------------------------------------
+# Sidecar skill-assignment tests
+# ---------------------------------------------------------------------------
+
+from unittest.mock import MagicMock, patch
+from src.core.services.skills_sidecar_service import SkillsSidecarService
+
+
+def _make_adapter_with_sidecar(sidecar_svc):
+    from src.adapters.multica_adapter import MulticaAdapter
+    return MulticaAdapter(sidecar_service=sidecar_svc)
+
+
+def _fake_agent():
+    from src.core.domain.models import Agent
+    return Agent(id="sa-agent", role="Solution Architect", instructions="do stuff")
+
+
+def test_publish_agent_assigns_sidecar_skills_after_create():
+    sidecar_svc = MagicMock(spec=SkillsSidecarService)
+    sidecar_svc.has_sidecar.return_value = True
+    sidecar_svc.get_skills_for_agent.return_value = ["brainstorming", "writing-plans"]
+
+    adapter = _make_adapter_with_sidecar(sidecar_svc)
+
+    def fake_run(args, **kw):
+        res = MagicMock()
+        res.returncode = 0
+        if args[1:3] == ["agent", "list"]:
+            res.stdout = "ID  NAME\n"
+        elif args[1:3] == ["skill", "list"]:
+            res.stdout = "ID  NAME\nid-1  brainstorming\nid-2  writing-plans\n"
+        elif args[1:4] == ["agent", "skills", "set"]:
+            res.stdout = ""
+        else:
+            res.stdout = ""
+        return res
+
+    with patch.object(adapter, "_run_cmd", side_effect=fake_run):
+        result = adapter._publish_agent(_fake_agent())
+
+    assert result is True
+    sidecar_svc.has_sidecar.assert_called_once_with("sa-agent")
+    sidecar_svc.get_skills_for_agent.assert_called_once_with("sa-agent")
+
+
+def test_publish_agent_skips_skill_assignment_without_sidecar():
+    sidecar_svc = MagicMock(spec=SkillsSidecarService)
+    sidecar_svc.has_sidecar.return_value = False
+
+    adapter = _make_adapter_with_sidecar(sidecar_svc)
+
+    def fake_run(args, **kw):
+        res = MagicMock()
+        res.returncode = 0
+        res.stdout = "ID  NAME\n"
+        return res
+
+    with patch.object(adapter, "_run_cmd", side_effect=fake_run):
+        result = adapter._publish_agent(_fake_agent())
+
+    assert result is True
+    sidecar_svc.get_skills_for_agent.assert_not_called()
+
+
+def test_publish_agent_fails_when_skill_ids_empty():
+    sidecar_svc = MagicMock(spec=SkillsSidecarService)
+    sidecar_svc.has_sidecar.return_value = True
+    sidecar_svc.get_skills_for_agent.return_value = ["brainstorming"]
+
+    adapter = _make_adapter_with_sidecar(sidecar_svc)
+
+    def fake_run(args, **kw):
+        res = MagicMock()
+        res.returncode = 0
+        # skill list returns nothing → no IDs resolved
+        res.stdout = "ID  NAME\n"
+        return res
+
+    with patch.object(adapter, "_run_cmd", side_effect=fake_run):
+        result = adapter._publish_agent(_fake_agent())
+
+    assert result is False
+
+
 if __name__ == "__main__":
     unittest.main()

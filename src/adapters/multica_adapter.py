@@ -6,10 +6,12 @@ from typing import Union
 from src.core.domain.models import Agent, Workflow
 from src.core.ports.agent_publisher import AgentPublisherPort
 from src.core.ports.workflow_publisher import WorkflowPublisherPort
+from src.core.services.skills_sidecar_service import SkillsSidecarService
 
 class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
-    def __init__(self, runtime_id: str = None):
+    def __init__(self, runtime_id: str = None, sidecar_service: SkillsSidecarService = None):
         self.runtime_id = runtime_id
+        self._sidecar_service = sidecar_service
 
     def _run_cmd(self, args: list[str]) -> subprocess.CompletedProcess:
         try:
@@ -40,6 +42,41 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
                 if len(parts) >= 2 and parts[1] == agent_slug:
                     return parts[0]
         return ""
+
+    def _get_multica_skill_ids(self, skill_names: list[str]) -> list[str]:
+        """Resolve skill names to Multica IDs via 'multica skill list'."""
+        res = self._run_cmd(["multica", "skill", "list"])
+        if res.returncode != 0:
+            return []
+        name_to_id: dict[str, str] = {}
+        for line in res.stdout.strip().splitlines()[1:]:
+            parts = line.split(maxsplit=2)
+            if len(parts) >= 2:
+                name_to_id[parts[1]] = parts[0]
+        return [name_to_id[n] for n in skill_names if n in name_to_id]
+
+    def _assign_sidecar_skills(self, agent_id: str) -> bool:
+        """Assign skills from sidecar to the agent in Multica. Returns False on failure."""
+        if not self._sidecar_service or not self._sidecar_service.has_sidecar(agent_id):
+            return True
+
+        skill_names = self._sidecar_service.get_skills_for_agent(agent_id)
+        skill_ids = self._get_multica_skill_ids(skill_names)
+
+        if not skill_ids:
+            print(f"  ✗ No Multica skill IDs resolved for '{agent_id}'", file=sys.stderr)
+            return False
+
+        agent_uuid = self._get_agent_uuid(agent_id)
+        res = self._run_cmd([
+            "multica", "agent", "skills", "set", agent_uuid,
+            "--skill-ids", ",".join(skill_ids),
+        ])
+        if res.returncode != 0:
+            print(f"  ✗ Failed to assign skills to '{agent_id}': {res.stderr.strip()}", file=sys.stderr)
+            return False
+        print(f"  ✓ Assigned {len(skill_ids)} skill(s) to '{agent_id}'")
+        return True
 
     def _get_agent_instructions(self, agent_uuid: str) -> tuple[bool, str]:
         """Get agent instructions via 'multica agent get'. Returns (success, instructions)."""
@@ -128,7 +165,7 @@ class MulticaAdapter(AgentPublisherPort, WorkflowPublisherPort):
             return False
         else:
             print(f"  ✓ Successfully synced '{agent.id}'")
-            return True
+            return self._assign_sidecar_skills(agent.id)
 
     def _publish_workflow(self, workflow: Workflow) -> bool:
         print(f"Syncing workflow {workflow.id}...")
