@@ -1,0 +1,10 @@
+version: 1
+component: devops
+
+repos:
+  - name: superpowers
+    install: "https://github.com/obra/superpowers"
+    skills:
+      - finishing-a-development-branch
+      - using-git-worktrees
+      - systematic-debugging

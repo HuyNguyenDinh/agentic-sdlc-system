@@ -1,0 +1,12 @@
+version: 1
+component: shared
+
+repos:
+  - name: multica-collaboration
+    install: "https://github.com/HuyNguyenDinh/multica-collaboration-skill"
+    skills:
+      - multica-collaboration
+  - name: superpowers
+    install: "https://github.com/obra/superpowers"
+    skills:
+      - using-superpowers

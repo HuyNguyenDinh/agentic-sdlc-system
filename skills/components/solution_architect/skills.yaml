@@ -1,0 +1,11 @@
+version: 1
+component: solution_architect
+
+repos:
+  - name: superpowers
+    install: "https://github.com/obra/superpowers"
+    skills:
+      - brainstorming
+      - writing-plans
+      - systematic-debugging
+      - verification-before-completion

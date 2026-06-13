@@ -1,4 +1,0 @@
-https://github.com/github/awesome-copilot --skill prd
-https://github.com/HuyNguyenDinh/multica-collaboration-skill
-https://github.com/obra/superpowers
-https://github.com/netresearch/file-search-skill 

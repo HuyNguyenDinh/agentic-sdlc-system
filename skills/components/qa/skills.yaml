@@ -1,0 +1,11 @@
+version: 1
+component: qa
+
+repos:
+  - name: superpowers
+    install: "https://github.com/obra/superpowers"
+    skills:
+      - test-driven-development
+      - systematic-debugging
+      - verification-before-completion
+      - receiving-code-review

@@ -1,0 +1,21 @@
+version: 1
+component: coding
+
+repos:
+  - name: superpowers
+    install: "https://github.com/obra/superpowers"
+    skills:
+      - subagent-driven-development
+      - executing-plans
+      - test-driven-development
+      - systematic-debugging
+      - finishing-a-development-branch
+      - using-git-worktrees
+      - verification-before-completion
+      - receiving-code-review
+      - requesting-code-review
+      - writing-skills
+  - name: file-search
+    install: "https://github.com/netresearch/file-search-skill"
+    skills:
+      - file-search

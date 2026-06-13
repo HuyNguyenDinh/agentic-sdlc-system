@@ -1,0 +1,11 @@
+version: 1
+component: management
+
+repos:
+  - name: superpowers
+    install: "https://github.com/obra/superpowers"
+    skills:
+      - dispatching-parallel-agents
+      - brainstorming
+      - writing-plans
+      - subagent-driven-development

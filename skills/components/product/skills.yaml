@@ -1,0 +1,13 @@
+version: 1
+component: product
+
+repos:
+  - name: awesome-copilot-prd
+    install: "https://github.com/github/awesome-copilot --skill prd"
+    skills:
+      - prd
+  - name: superpowers
+    install: "https://github.com/obra/superpowers"
+    skills:
+      - brainstorming
+      - writing-plans

@@ -1,0 +1,10 @@
+version: 1
+
+imports:
+  - skills/components/solution_architect
+  - skills/components/coding
+  - skills/components/qa
+  - skills/components/product
+  - skills/components/management
+  - skills/components/devops
+  - skills/components/shared
