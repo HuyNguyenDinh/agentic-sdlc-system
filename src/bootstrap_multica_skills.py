@@ -123,40 +123,6 @@ def create_or_update_skill(name: str, skill_md_path: Path, *, dry_run: bool = Fa
             return None
 
 
-def get_all_agent_ids() -> list[tuple[str, str]]:
-    """Return [(agent_id, agent_name)] for all agents in the current workspace."""
-    res = _run_cmd(["multica", "agent", "list"])
-    if res.returncode != 0:
-        print(f"  ⚠ Failed to list agents: {res.stderr.strip()}", file=sys.stderr)
-        return []
-    agents = []
-    for line in res.stdout.strip().splitlines()[1:]:
-        parts = line.split(maxsplit=3)
-        if len(parts) >= 2:
-            agents.append((parts[0], parts[1]))
-    return agents
-
-
-def assign_skills_to_agent(agent_id: str, agent_name: str, skill_ids: list[str], *, dry_run: bool = False) -> bool:
-    """Assign all skills to a single agent via multica agent skills set."""
-    if not skill_ids:
-        return True
-
-    if dry_run:
-        print(f"  [dry-run] multica agent skills set {agent_id} --skill-ids <{len(skill_ids)} skills>")
-        return True
-
-    res = _run_cmd([
-        "multica", "agent", "skills", "set", agent_id,
-        "--skill-ids", ",".join(skill_ids),
-    ])
-    if res.returncode != 0:
-        print(f"  ✗ Failed to assign skills to '{agent_name}' ({agent_id[:8]}...): {res.stderr.strip()}", file=sys.stderr)
-        return False
-    print(f"  ✓ Assigned {len(skill_ids)} skills to '{agent_name}'")
-    return True
-
-
 def sync_skills_to_multica(*, dry_run: bool = False, catalog: SkillsCatalogService = None) -> list[str]:
     """Import local skills into Multica workspace. Returns list of skill IDs.
 

@@ -13,6 +13,7 @@ from src.install_skills import install_skills_from_catalog
 from src.bootstrap_obsidian_wiki import DEFAULT_VAULT_PATH, run_bootstrap, run_post_bootstrap_check
 from src.bootstrap_gitnexus import install_gitnexus, run_bootstrap as run_bootstrap_gitnexus
 from src.bootstrap_multica_skills import sync_skills_to_multica
+from src.core.services.skills_catalog_service import SkillsCatalogService
 
 
 DEFAULT_WORKFLOW = "workflow/orchestrator-debate.yaml"
@@ -183,7 +184,8 @@ def cmd_bootstrap_skills(args):
 
 
 def run_bootstrap_skills(args):
-    skill_ids = sync_skills_to_multica(dry_run=args.dry_run)
+    catalog = SkillsCatalogService()
+    skill_ids = sync_skills_to_multica(catalog=catalog, dry_run=args.dry_run)
     if not skill_ids:
         if not args.dry_run:
             print("No skills to assign. Check that local skills exist and are importable.")
