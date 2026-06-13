@@ -36,7 +36,7 @@ class TestKnowledgeBindingResolver:
 
     def test_on_demand_mode(self):
         binding = KnowledgeBinding("key1", "test")
-        self.resolver._cache["key1"] = self.resolver._cache.get("key1", None)
+        self.resolver.register_bindings([binding])
 
         value = self.resolver.resolve("key1", ResolutionMode.ON_DEMAND)
 
@@ -52,6 +52,7 @@ class TestKnowledgeBindingResolver:
 
     def test_implicit_mode(self):
         binding = KnowledgeBinding("key1", "test")
+        self.resolver.register_bindings([binding])
 
         value = self.resolver.resolve("key1", ResolutionMode.IMPLICIT)
 
@@ -61,6 +62,7 @@ class TestKnowledgeBindingResolver:
 
     def test_cache_behavior(self):
         binding = KnowledgeBinding("key1", "test")
+        self.resolver.register_bindings([binding])
 
         # first miss
         v1 = self.resolver.resolve("key1")
@@ -74,6 +76,7 @@ class TestKnowledgeBindingResolver:
 
     def test_invalidate(self):
         binding = KnowledgeBinding("key1", "test")
+        self.resolver.register_bindings([binding])
         self.resolver.prefetch([binding])
 
         assert "key1" in self.resolver._cache
@@ -99,6 +102,8 @@ class TestKnowledgeBindingResolver:
         assert len(self.resolver._prefetched) == 0
 
     def test_resolve_all(self):
+        bindings = [KnowledgeBinding(f"key{i}", "test") for i in range(1, 4)]
+        self.resolver.register_bindings(bindings)
         keys = ["key1", "key2", "key3"]
         results = self.resolver.resolve_all(keys)
 

@@ -9,73 +9,60 @@ from src.core.schema.agent_iac_schema import validate_agent_iac, AGENT_IAC_SCHEM
 def test_agent_iac_schema_exists():
     assert AGENT_IAC_SCHEMA is not None
     assert "properties" in AGENT_IAC_SCHEMA
-    assert "name" in AGENT_IAC_SCHEMA["properties"]
+    assert "agent" in AGENT_IAC_SCHEMA["properties"]
     assert "version" in AGENT_IAC_SCHEMA["properties"]
 
 
 def test_valid_agent_iac_passes_validation():
     valid_data = {
-        "name": "test-agent",
-        "version": "1.0.0",
-        "description": "Test agent",
-        "environment": {
-            "name": "production",
-            "variables": {"LOG_LEVEL": "INFO"},
-            "secrets": ["API_KEY"]
-        },
-        "resources": [
-            {"type": "database", "name": "test-db", "config": {"engine": "postgres"}}
-        ],
-        "permissions": {
-            "allowed_tools": ["bash", "read_file"],
-            "read_access": ["/tmp"],
-            "write_access": ["/tmp/out"]
-        },
-        "entrypoint": "main.py",
-        "timeout_seconds": 7200,
-        "max_concurrent_runs": 2
+        "version": 1,
+        "agent": {
+            "id": "test-agent",
+            "role": "Engineer",
+            "path": "agents/test/test-agent.md",
+            "description": "Test agent",
+        }
     }
 
-    result = validate_agent_iac(valid_data)
-    assert result["name"] == "test-agent"
-    assert result["timeout_seconds"] == 7200
+    errors = validate_agent_iac(valid_data)
+    assert errors == []
 
 
 def test_missing_required_fields_fails():
     invalid_data = {
-        "version": "1.0.0",
-        "environment": {"name": "prod"},
-        "permissions": {},
-        "entrypoint": "main.py"
+        "version": 1,
+        # missing "agent" key entirely
     }
 
-    with pytest.raises(ValueError) as excinfo:
-        validate_agent_iac(invalid_data)
-    assert "validation failed" in str(excinfo.value)
+    errors = validate_agent_iac(invalid_data)
+    assert len(errors) > 0
+    assert any("agent" in e for e in errors)
 
 
-def test_empty_entrypoint_fails():
+def test_empty_agent_id_fails():
     invalid_data = {
-        "name": "test-agent",
-        "version": "1.0.0",
-        "environment": {"name": "prod"},
-        "permissions": {},
-        "entrypoint": ""
+        "version": 1,
+        "agent": {
+            "id": "",  # fails pattern ^[a-z][a-z0-9-]*$
+            "role": "Engineer",
+            "path": "agents/test/test-agent.md",
+        }
     }
 
-    with pytest.raises(ValueError):
-        validate_agent_iac(invalid_data)
+    errors = validate_agent_iac(invalid_data)
+    assert len(errors) > 0
 
 
-def test_negative_timeout_fails():
+def test_negative_temperature_fails():
     invalid_data = {
-        "name": "test-agent",
-        "version": "1.0.0",
-        "environment": {"name": "prod"},
-        "permissions": {},
-        "entrypoint": "main.py",
-        "timeout_seconds": -10
+        "version": 1,
+        "agent": {
+            "id": "test-agent",
+            "role": "Engineer",
+            "path": "agents/test/test-agent.md",
+            "runtime": {"temperature": -1.0},
+        }
     }
 
-    with pytest.raises(ValueError):
-        validate_agent_iac(invalid_data)
+    errors = validate_agent_iac(invalid_data)
+    assert len(errors) > 0

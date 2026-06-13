@@ -38,12 +38,17 @@ class ResolverStats:
 class KnowledgeBindingResolver:
     def __init__(self):
         self._cache: Dict[str, ResolvedKnowledge] = {}
+        self._bindings: Dict[str, KnowledgeBinding] = {}
         self._prefetched: Set[str] = set()
         self._providers: Dict[str, Callable[[KnowledgeBinding], Any]] = {}
         self._stats = ResolverStats()
 
     def register_provider(self, name: str, fetcher: Callable[[KnowledgeBinding], Any]) -> None:
         self._providers[name] = fetcher
+
+    def register_bindings(self, bindings: List[KnowledgeBinding]) -> None:
+        for binding in bindings:
+            self._bindings[binding.key] = binding
 
     def prefetch(self, bindings: List[KnowledgeBinding]) -> None:
         for binding in bindings:
@@ -111,6 +116,8 @@ class KnowledgeBindingResolver:
         return self._providers[binding.provider](binding)
 
     def _find_binding(self, key: str) -> Optional[KnowledgeBinding]:
+        if key in self._bindings:
+            return self._bindings[key]
         for cached in self._cache.values():
             if cached.binding.key == key:
                 return cached.binding

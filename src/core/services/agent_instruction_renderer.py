@@ -81,24 +81,30 @@ class AgentInstructionRenderer:
         return current
 
     def _inject_knowledge_bindings(self, content: str, bindings: List[Dict[str, Any]]) -> tuple[str, int]:
-        """Inject knowledge bindings as clean comment header at very top."""
+        """Append knowledge context and access matrix after the base content."""
         if not bindings:
             return content, 0
 
-        footer = "\n### MANDATORY CONSTRAINT\n\n"
-        footer += "✅ **YOU MUST QUERY ALL ATTACHED KNOWLEDGE BASES TO VERIFY YOUR THINKING AND ANSWERBEFORE PRODUCING ANY OUTPUT.**\n"
+        footer = "\n\n---\n### KNOWLEDGE CONTEXT\n\n"
+        footer += "### MANDATORY CONSTRAINT\n\n"
+        footer += "✅ **YOU MUST QUERY ALL ATTACHED KNOWLEDGE BASES TO VERIFY YOUR THINKING AND ANSWER BEFORE PRODUCING ANY OUTPUT.**\n"
         footer += "✅ Do not start design work until you have read existing patterns, decisions and architecture from knowledge sources.\n"
         footer += "✅ Cite knowledge sources when justifying architectural decisions.\n"
-    
-        # Append matrix to bottom
+
+        for b in bindings:
+            kb_id = b.get('source') or b.get('id', 'unknown')
+            binding_content = b.get('content')
+            if binding_content:
+                footer += f"\n**{kb_id}:**\n{binding_content}\n"
+
         footer += "\n---\n### Knowledge Base Access Matrix\n\n"
         footer += "| Source | Mode | Access | Scope |\n"
         footer += "|--------|------|--------|-------|\n"
 
         for b in bindings:
+            source = b.get('source') or b.get('id', 'unknown')
             access = "✏️ Read/Write" if 'write' in b.get('access', []) else "📖 Read Only"
-            footer += f"| `{b.get('source', 'unknown')}` | {b.get('mode', 'default')} | {access} | {', '.join(b.get('scope', []))} |\n"
-
+            footer += f"| `{source}` | {b.get('mode', 'default')} | {access} | {', '.join(b.get('scope', []))} |\n"
 
         return content + footer, len(bindings)
 
