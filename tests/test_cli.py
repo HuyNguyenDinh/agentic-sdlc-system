@@ -164,5 +164,33 @@ class TestCLI(unittest.TestCase):
             self.assertEqual(cm.exception.code, 1)
 
 
+def test_install_skills_reads_from_catalog(tmp_path, monkeypatch):
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    (skills_dir / "skills.yaml").write_text(
+        "version: 1\nimports:\n  - skills/components/shared\n"
+    )
+    shared_dir = skills_dir / "components" / "shared"
+    shared_dir.mkdir(parents=True)
+    (shared_dir / "skills.yaml").write_text(
+        "version: 1\ncomponent: shared\nrepos:\n"
+        "  - name: test-pkg\n    install: 'https://github.com/org/test'\n    skills: [skill-a]\n"
+    )
+
+    calls = []
+
+    def fake_run(cmd, **kw):
+        calls.append(cmd)
+        result = type("R", (), {"returncode": 0})()
+        return result
+
+    monkeypatch.setattr("src.install_skills.subprocess.run", fake_run)
+
+    from src.install_skills import install_skills_from_catalog
+    install_skills_from_catalog(project_root=tmp_path)
+
+    assert any("https://github.com/org/test" in " ".join(c) for c in calls)
+
+
 if __name__ == "__main__":
     unittest.main()

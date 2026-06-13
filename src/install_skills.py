@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from src.core.services.skills_catalog_service import SkillsCatalogService
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_SKILLS_FILE = PROJECT_ROOT / "skills.txt"
 
@@ -58,9 +60,42 @@ def install_skills_from_file(skills_file: Path, *, dry_run: bool = False) -> Non
     print(f"\nAll {len(skills)} skill(s) installed successfully")
 
 
+def install_skills_from_catalog(project_root: Path = PROJECT_ROOT, *, dry_run: bool = False) -> None:
+    catalog = SkillsCatalogService(project_root=project_root)
+    urls = catalog.get_install_urls()
+    if not urls:
+        print("No skills found in catalog")
+        return
+
+    if dry_run:
+        print(f"[dry-run] Would install: {len(urls)} skill package(s)")
+        for url in urls:
+            print(f"  npx skills add {url} -y -g")
+        return
+
+    failed = 0
+    for url in urls:
+        print(f"Installing: {url}")
+        parts = url.split()
+        result = subprocess.run(["npx", "skills", "add", *parts, "-y", "-g"], capture_output=False, text=True)
+        if result.returncode != 0:
+            print(f"  ✗ Failed: {url}")
+            failed += 1
+        else:
+            print(f"  ✓ Installed: {url}")
+
+    if failed:
+        raise RuntimeError(f"{failed} skill package(s) failed to install")
+
+    print(f"\nAll {len(urls)} skill package(s) installed successfully")
+
+
 def run(args: argparse.Namespace) -> None:
     try:
-        install_skills_from_file(Path(args.file), dry_run=args.dry_run)
+        if getattr(args, "file", None):
+            install_skills_from_file(Path(args.file), dry_run=args.dry_run)
+        else:
+            install_skills_from_catalog(dry_run=args.dry_run)
     except RuntimeError as exc:
         print(f"Error: {exc}")
         sys.exit(1)
@@ -72,8 +107,8 @@ def main():
     )
     parser.add_argument(
         "--file", "-f",
-        default=str(DEFAULT_SKILLS_FILE),
-        help=f"Path to skills file (default: {DEFAULT_SKILLS_FILE})",
+        default=None,
+        help="Path to legacy skills file (default: use skills/skills.yaml catalog)",
     )
     parser.add_argument(
         "--dry-run", "-n",
