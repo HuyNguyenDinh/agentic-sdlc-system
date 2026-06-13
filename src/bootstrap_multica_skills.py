@@ -2,7 +2,8 @@
 """Bootstrap skills from local ~/.agents/skills/ into the Multica workspace.
 
 Reads all SKILL.md files from the local skills directory, creates/updates them
-in Multica via `multica skill create`, and optionally assigns them to agents.
+in Multica via `multica skill create`. Per-agent skill assignment is handled
+separately by MulticaAdapter._assign_sidecar_skills() during sync-agent.
 """
 
 import json
@@ -13,38 +14,9 @@ import time
 from pathlib import Path
 from typing import Optional
 
-SKILLS_DIR = Path.home() / ".agents" / "skills"
+from src.core.services.skills_catalog_service import SkillsCatalogService
 
-# Skills needed by development agents for wiki/KB management
-# (all skills get assigned to all agents anyway, but this defines the set)
-CORE_SKILLS = [
-    # Wiki / KB
-    "llm-wiki", "obsidian", "obsidian-wiki-ingest",
-    "wiki-agent", "wiki-capture", "wiki-context-pack", "wiki-dashboard",
-    "wiki-dedup", "wiki-digest", "wiki-export", "wiki-history-ingest",
-    "wiki-import", "wiki-ingest", "wiki-lint", "wiki-query",
-    "wiki-quick-chat-capture", "wiki-rebuild", "wiki-research",
-    "wiki-setup", "wiki-stage-commit", "wiki-status", "wiki-switch",
-    "wiki-synthesize", "wiki-update",
-    # Development workflow
-    "brainstorming", "dispatching-parallel-agents", "executing-plans",
-    "finishing-a-development-branch", "multica-collaboration", "prd",
-    "receiving-code-review", "requesting-code-review",
-    "subagent-driven-development", "systematic-debugging",
-    "test-driven-development", "using-git-worktrees", "using-superpowers",
-    "verification-before-completion", "writing-plans", "writing-skills",
-    # Tools
-    "todoist", "cross-linker", "tag-taxonomy", "graph-colorize",
-    "data-ingest", "ingest-url", "daily-update", "memory-bridge",
-    # Research
-    "arxiv", "blogwatcher", "llm-wiki", "polymarket",
-    # Media
-    "gif-search", "heartmula", "songsee", "youtube-content",
-    # GitHub
-    "github-auth", "github-code-review", "github-issues",
-    "github-pr-workflow", "github-repo-management",
-    "codebase-inspection",
-]
+SKILLS_DIR = Path.home() / ".agents" / "skills"
 
 
 def _run_cmd(args: list[str], *, timeout: int = 60) -> subprocess.CompletedProcess:
@@ -93,16 +65,16 @@ def get_multica_skills() -> dict[str, str]:
 def create_or_update_skill(name: str, skill_md_path: Path, *, dry_run: bool = False) -> Optional[str]:
     """Create (or update) a skill in Multica from local SKILL.md. Returns skill ID."""
     existing = get_multica_skills()
-    
+
     if name in existing:
         skill_id = existing[name]
         desc_line = skill_md_path.read_text().splitlines()[0] if skill_md_path.exists() else ""
         desc = desc_line.strip().lstrip("# ")[:200] if desc_line else name
-        
+
         if dry_run:
             print(f"  [dry-run] skill update {skill_id} --name {name}")
             return skill_id
-            
+
         # Update: use skill update --config + --content-file
         config_json = json.dumps({"name": name})
         res = _run_cmd([
@@ -119,11 +91,11 @@ def create_or_update_skill(name: str, skill_md_path: Path, *, dry_run: bool = Fa
         # Create new skill
         desc_line = skill_md_path.read_text().splitlines()[0] if skill_md_path.exists() else ""
         desc = desc_line.strip().lstrip("# ")[:200] if desc_line else name
-        
+
         if dry_run:
             print(f"  [dry-run] multica skill create --name {name} --description <short> --content-file <path>")
             return None
-            
+
         res = _run_cmd([
             "multica", "skill", "create",
             "--name", name,
@@ -169,11 +141,11 @@ def assign_skills_to_agent(agent_id: str, agent_name: str, skill_ids: list[str],
     """Assign all skills to a single agent via multica agent skills set."""
     if not skill_ids:
         return True
-    
+
     if dry_run:
         print(f"  [dry-run] multica agent skills set {agent_id} --skill-ids <{len(skill_ids)} skills>")
         return True
-    
+
     res = _run_cmd([
         "multica", "agent", "skills", "set", agent_id,
         "--skill-ids", ",".join(skill_ids),
@@ -185,66 +157,53 @@ def assign_skills_to_agent(agent_id: str, agent_name: str, skill_ids: list[str],
     return True
 
 
-def sync_skills_to_multica(*, dry_run: bool = False) -> list[str]:
-    """Import all local skills into Multica workspace. Returns list of skill IDs."""
+def sync_skills_to_multica(*, dry_run: bool = False, catalog: SkillsCatalogService = None) -> list[str]:
+    """Import local skills into Multica workspace. Returns list of skill IDs.
+
+    If catalog is provided, only skills whose names appear in the catalog are
+    synced. If no catalog is given, all local skills are synced.
+    """
     local = get_local_skills()
     if not local:
         print("No local skills found in", SKILLS_DIR)
         return []
-    
-    print(f"Syncing {len(local)} skills from {SKILLS_DIR} to Multica workspace...")
-    
+
+    # Build allowed set from catalog; empty set means "no filter"
+    allowed_names: set[str] = set()
+    if catalog is not None:
+        for skills in catalog.get_all_skills().values():
+            allowed_names.update(skills)
+
+    print(f"Syncing skills from {SKILLS_DIR} to Multica workspace...")
+
     skill_ids: list[str] = []
     failed = 0
-    
-    for i, (name, path) in enumerate(local.items(), 1):
-        skip = False
-        # Only import skills that are in our CORE_SKILLS list (skip generic/personal stuff)
-        if name not in CORE_SKILLS:
-            skip = True
+
+    for name, path in local.items():
+        if allowed_names and name not in allowed_names:
             continue
-            
+
         sid = create_or_update_skill(name, path, dry_run=dry_run)
         if sid:
             skill_ids.append(sid)
         elif not dry_run:
             failed += 1
-    
-    total = len([n for n in local if n in CORE_SKILLS])
+
+    total = len([n for n in local if not allowed_names or n in allowed_names])
     print(f"\nSkills: {len(skill_ids)}/{total} synced" + (f", {failed} failed" if failed else ""))
     return skill_ids
-
-
-def assign_skills_to_all_agents(skill_ids: list[str], *, dry_run: bool = False) -> bool:
-    """Assign list of skill IDs to every agent in the workspace."""
-    agents = get_all_agent_ids()
-    if not agents:
-        print("No agents found in workspace")
-        return False
-    
-    print(f"\nAssigning {len(skill_ids)} skill(s) to {len(agents)} agent(s)...")
-    
-    failed = 0
-    for agent_id, agent_name in agents:
-        if not assign_skills_to_agent(agent_id, agent_name, skill_ids, dry_run=dry_run):
-            failed += 1
-    
-    success = len(agents) - failed
-    print(f"\nAgents: {success}/{len(agents)} assigned" + (f", {failed} failed" if failed else ""))
-    return failed == 0
 
 
 def run(args) -> None:
     """Main entrypoint for the CLI command."""
     dry_run = getattr(args, "dry_run", False)
-    
-    skill_ids = sync_skills_to_multica(dry_run=dry_run)
+
+    catalog = SkillsCatalogService()
+    skill_ids = sync_skills_to_multica(catalog=catalog, dry_run=dry_run)
     if not skill_ids:
         if not dry_run:
             print("No skills to assign. Check that local skills exist and are importable.")
         return
-    
-    assign_skills_to_all_agents(skill_ids, dry_run=dry_run)
 
 
 if __name__ == "__main__":

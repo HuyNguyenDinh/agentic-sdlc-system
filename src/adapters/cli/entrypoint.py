@@ -12,7 +12,7 @@ from src.core.services.workflow_sync_service import WorkflowSyncService
 from src.install_skills import install_skills_from_catalog
 from src.bootstrap_obsidian_wiki import DEFAULT_VAULT_PATH, run_bootstrap, run_post_bootstrap_check
 from src.bootstrap_gitnexus import install_gitnexus, run_bootstrap as run_bootstrap_gitnexus
-from src.bootstrap_multica_skills import sync_skills_to_multica, assign_skills_to_all_agents
+from src.bootstrap_multica_skills import sync_skills_to_multica
 
 
 DEFAULT_WORKFLOW = "workflow/orchestrator-debate.yaml"
@@ -187,9 +187,6 @@ def run_bootstrap_skills(args):
     if not skill_ids:
         if not args.dry_run:
             print("No skills to assign. Check that local skills exist and are importable.")
-            return
-        return
-    assign_skills_to_all_agents(skill_ids, dry_run=args.dry_run)
 
 
 def cmd_bootstrap(args):
