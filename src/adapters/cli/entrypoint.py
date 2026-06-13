@@ -13,6 +13,8 @@ from src.install_skills import install_skills_from_catalog
 from src.bootstrap_obsidian_wiki import DEFAULT_VAULT_PATH, run_bootstrap, run_post_bootstrap_check
 from src.bootstrap_gitnexus import install_gitnexus, run_bootstrap as run_bootstrap_gitnexus
 from src.bootstrap_multica_skills import run as run_multica_bootstrap
+from src.core.services.skills_catalog_service import SkillsCatalogService
+from src.core.services.skills_sidecar_service import SkillsSidecarService
 
 
 DEFAULT_WORKFLOW = "workflow/orchestrator-debate.yaml"
@@ -99,9 +101,11 @@ def run_sync_agent(args):
     agents_dir = project_root / "agents"
     
     repo = FSAgentRepository(base_path=agents_dir)
-    
+
     if args.adapter == "multica":
-        pub = MulticaAdapter(runtime_id=getattr(args, "runtime_id", None))
+        catalog = SkillsCatalogService(project_root=project_root)
+        sidecar_svc = SkillsSidecarService(catalog=catalog, agents_root=agents_dir)
+        pub = MulticaAdapter(runtime_id=getattr(args, "runtime_id", None), sidecar_service=sidecar_svc)
     else:
         print(f"Error: Unknown adapter '{args.adapter}'", file=sys.stderr)
         sys.exit(1)
@@ -275,7 +279,7 @@ def main():
     p_bootstrap_gitnexus.set_defaults(func=cmd_bootstrap_gitnexus)
 
     # bootstrap-skills
-    p_bootstrap_skills = sub.add_parser("bootstrap-skills", help="import local skills into Multica workspace and assign to all agents")
+    p_bootstrap_skills = sub.add_parser("bootstrap-skills", help="import local skills from catalog into Multica workspace")
     p_bootstrap_skills.add_argument("--dry-run", "-n", action="store_true", help="print actions without executing")
     p_bootstrap_skills.set_defaults(func=cmd_bootstrap_skills)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install skills from skills.txt using the skills.sh CLI."""
+"""Install skill packages from the skills catalog (skills/skills.yaml) using the skills CLI."""
 
 import argparse
 import subprocess
@@ -102,7 +102,7 @@ def run(args: argparse.Namespace) -> None:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Install skills from skills.txt using the skills.sh CLI"
+        description="Install skill packages from the skills catalog (skills/skills.yaml)"
     )
     parser.add_argument(
         "--file", "-f",
