@@ -413,7 +413,7 @@ def test_publish_agent_assigns_sidecar_skills_after_create():
         res = MagicMock()
         res.returncode = 0
         if args[1:3] == ["agent", "list"]:
-            res.stdout = "ID  NAME\n"
+            res.stdout = "ID  NAME\nuuid-sa  sa-agent\n"
         elif args[1:3] == ["skill", "list"]:
             res.stdout = "ID  NAME\nid-1  brainstorming\nid-2  writing-plans\n"
         elif args[1:4] == ["agent", "skills", "set"]:
