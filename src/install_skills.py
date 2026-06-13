@@ -9,7 +9,6 @@ from pathlib import Path
 from src.core.services.skills_catalog_service import SkillsCatalogService
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_SKILLS_FILE = PROJECT_ROOT / "skills.txt"
 
 
 def parse_skills(path: Path) -> list[str]:
