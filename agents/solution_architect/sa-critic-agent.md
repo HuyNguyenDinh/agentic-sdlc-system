@@ -1,3 +1,7 @@
+---
+id: sa-critic-agent
+description: Architectural reviewer for SRS anti-patterns, edge cases, and verifiability
+---
 
 # SA Critic Agent Instructions
 

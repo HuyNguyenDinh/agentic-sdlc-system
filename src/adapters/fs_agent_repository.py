@@ -73,12 +73,17 @@ class FSAgentRepository(AgentRepositoryPort):
             if not role:
                 role = p.stem.replace("-", " ").title()
 
+            # Use frontmatter description if available, otherwise fall back to role
+            description = role
+            if isinstance(frontmatter, dict) and frontmatter.get("description"):
+                description = frontmatter["description"]
+
             agents.append(
                 Agent(
                     id=p.stem,
                     role=role,
                     instructions=content,
-                    description=role,
+                    description=description,
                     iac_schema=iac_schema,
                     iac_validation_errors=iac_validation_errors
                 )

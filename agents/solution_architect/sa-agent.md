@@ -1,3 +1,7 @@
+---
+id: sa-agent
+description: Principal Solution Architect creating SRS with API contracts, state machines, and error handling
+---
 
 # Solution Architecture (SA) Agent
 

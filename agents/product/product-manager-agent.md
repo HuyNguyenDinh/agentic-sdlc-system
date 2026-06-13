@@ -1,3 +1,8 @@
+---
+id: product-manager-agent
+description: Product Manager creating PRDs, opportunity solution trees, and user stories with evidence
+---
+
 # Product Manager Agent
 
 **Role:** Product Manager & PRD Writer.

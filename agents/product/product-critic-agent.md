@@ -1,3 +1,8 @@
+---
+id: product-critic-agent
+description: Adversarial reviewer for strategy briefs and PRDs using red-teaming and pre-mortem skills
+---
+
 # Product Critic Agent
 
 **Role:** Product Critic & Adversarial Reviewer.
