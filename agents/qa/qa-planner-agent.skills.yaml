@@ -1,0 +1,6 @@
+version: 1
+agent: qa-planner-agent
+
+pull:
+  - skills/components/qa
+  - skills/components/shared
