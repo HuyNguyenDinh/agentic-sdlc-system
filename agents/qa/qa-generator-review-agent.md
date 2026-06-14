@@ -128,6 +128,21 @@ Review every generated test file against six dimensions. Output a structured rev
 - Boundary values tested (0, 1, max, max+1)
 - Edge cases: empty, null, duplicate, concurrent
 
+**Verification Pass (after code generation):**
+Run `npx tsc --noEmit` (or language equivalent) and grep for hallucinated selectors/endpoints. The `suite_run` counts in the review report reflect this verification, not full test execution.
+
+### Decision Matrix
+
+After reviewing a test file, determine severity and action:
+
+| Condition | Severity | Action |
+|-----------|----------|--------|
+| Hallucinated APIs or imports that don't resolve | high | REJECT |
+| >2 high-severity smell dimensions (reliability, diagnostic) | high | REJECT |
+| Fixable issues in 1-2 smell dimensions | medium | MODIFY |
+| Minor style/convention issues only | low | KEEP |
+| All dimensions pass | low | KEEP |
+
 ---
 
 ## Output Schema
@@ -161,9 +176,9 @@ files_reviewed:
     action: <KEEP | MODIFY | REJECT>
 
 suite_run:
-  pass: <number>
-  fail: <number>
-  skip: <number>
+  pass: <number>    # tests that compile and have no hallucinated APIs
+  fail: <number>    # tests with compilation errors or hallucinated references
+  skip: <number>    # tests skipped due to unresolved ambiguities
 
 mutation_score: <0.0-1.0>
 
