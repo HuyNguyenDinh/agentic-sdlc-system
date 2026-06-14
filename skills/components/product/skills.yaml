@@ -2,10 +2,18 @@ version: 1
 component: product
 
 repos:
-  - name: awesome-copilot-prd
-    install: "https://github.com/github/awesome-copilot --skill prd"
+  - name: pm-skills
+    install: "https://github.com/phuryn/pm-skills --skill product-strategy --skill gtm-strategy --skill north-star-metric --skill opportunity-solution-tree --skill create-prd --skill user-stories --skill strategy-red-team --skill identify-assumptions-new --skill pre-mortem"
     skills:
-      - prd
+      - product-strategy
+      - gtm-strategy
+      - north-star-metric
+      - opportunity-solution-tree
+      - create-prd
+      - user-stories
+      - strategy-red-team
+      - identify-assumptions-new
+      - pre-mortem
   - name: superpowers
     install: "https://github.com/obra/superpowers"
     skills:
