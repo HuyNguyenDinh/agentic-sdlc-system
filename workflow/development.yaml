@@ -50,13 +50,21 @@ agents:
     role: Code Reviewer
     path: agents/coding/code-critic-agent.md
 
-  - id: qa-agent
-    role: Quality Assurance
-    path: agents/qa/qa-agent.md
-
   - id: qa-critic-agent
     role: QA Reviewer
     path: agents/qa/qa-critic-agent.md
+
+  - id: qa-context-risk-agent
+    role: QA Context & Risk Analyst
+    path: agents/qa/qa-context-risk-agent.md
+
+  - id: qa-planner-agent
+    role: QA Strategy & Planning Lead
+    path: agents/qa/qa-planner-agent.md
+
+  - id: qa-generator-review-agent
+    role: QA Test Generator & Reviewer
+    path: agents/qa/qa-generator-review-agent.md
 
   - id: devops-agent
     role: DevOps & CI/CD Engineer
@@ -96,7 +104,7 @@ steps:
 
   - id: worker-plans
     type: fanout
-    description: Explorer gathers context, Planner creates implementation plan, QA plans tests
+    description: Explorer gathers context, Planner creates implementation plan
     input: task-breakdown
     workers:
       - id: explore-context
@@ -108,10 +116,6 @@ steps:
         input: codebase-context
         output: draft-implementation-plan
 
-      - id: qa-plan
-        actor: qa-agent
-        output: qa-implementation-plan
-
   - id: planner-debate
     type: debate
     description: Code-Critic reviews Planner's implementation plan
@@ -119,21 +123,45 @@ steps:
     critic: code-critic-agent
     artifact: draft-implementation-plan
     max_turn: 3
-    on_approved: implementation-execution
+    on_approved: qa-context-risk
     on_max_turn_reached: hitl
+
+  - id: qa-context-risk
+    type: delegate
+    description: QA gathers project context and builds risk matrix
+    actor: qa-context-risk-agent
+    input: [task-breakdown, srs]
+    output: [qa-project-context, risk-matrix]
+
+  - id: qa-planning
+    type: delegate
+    description: QA Planner creates test strategy + sprint plan + coverage matrix + execution schema
+    actor: qa-planner-agent
+    input: [qa-project-context, risk-matrix, draft-implementation-plan]
+    output: draft-qa-plan
 
   - id: qa-debate
     type: debate
-    description: QA Critic reviews QA implementation plan
-    actor: qa-agent
+    description: QA Critic reviews plan for gaps, happy-path bias, NFR coverage, and scope violations
+    actor: qa-planner-agent
     critic: qa-critic-agent
-    artifact: qa-implementation-plan
+    artifact: draft-qa-plan
+    max_turn: 3
+    on_approved: qa-generate-review
+    on_max_turn_reached: hitl
+
+  - id: qa-generate-review
+    type: delegate
+    description: QA generates test code from approved plan and reviews quality across six dimensions
+    actor: qa-generator-review-agent
+    input: [approved-qa-plan, approved-implementation-plan]
+    output: [test-suites, qa-review-report]
     max_turn: 3
 
   - id: implementation-execution
     type: delegate
-    description: Implementer executes approved plan with TDD, QA generates test suites
-    actor: [code-implementer-agent, qa-agent]
+    description: Implementer executes approved plan with TDD
+    actor: code-implementer-agent
     input: approved-implementation-plans
     max_turn: 3
     on_max_turn_reached: cicd-setup
@@ -149,15 +177,15 @@ steps:
 
   - id: cicd-setup
     type: delegate
-    description: DevOps configures CI/CD pipeline to run test suites
+    description: DevOps wires QA-defined commands/metrics/reports/schemas into CI/CD pipeline
     actor: devops-agent
-    input: test-suites
+    input: [test-suites, qa-review-report, qa-defined-schemas]
     output: cicd-pipeline
 
   - id: hitl-execution
     type: hitl
     description: Human reviews execution/test results and plan compliance before completion
-    artifact: execution-results + compliance-report
+    artifact: execution-results + compliance-report + approved-qa-plan + qa-review-report
     on_approved: completion
     on_rejected: implementation-execution
 
