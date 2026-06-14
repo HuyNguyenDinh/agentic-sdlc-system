@@ -9,3 +9,18 @@ repos:
       - systematic-debugging
       - verification-before-completion
       - receiving-code-review
+  - name: qa-skills
+    install: "https://github.com/petrkindlmann/qa-skills"
+    skills:
+      - qa-project-context
+      - risk-based-testing
+      - test-strategy
+      - test-planning
+      - api-testing
+      - ai-test-generation
+      - ai-qa-review
+      - test-data-management
+      - test-reliability
+      - ci-cd-integration
+      - coverage-analysis
+      - qa-metrics
