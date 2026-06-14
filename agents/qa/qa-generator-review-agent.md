@@ -123,13 +123,13 @@ Review every generated test file against six dimensions. Output a structured rev
 - Project data factory used, not `test@test.com` or `John Doe`
 - Tests not duplicating the same behavior trivially
 
+**Verification Pass (after code generation):**
+Run `npx tsc --noEmit` (or language equivalent) and grep for hallucinated selectors/endpoints. The `suite_run` counts in the review report reflect this verification, not full test execution.
+
 **6. Coverage:**
 - Happy path AND error/negative paths tested
 - Boundary values tested (0, 1, max, max+1)
 - Edge cases: empty, null, duplicate, concurrent
-
-**Verification Pass (after code generation):**
-Run `npx tsc --noEmit` (or language equivalent) and grep for hallucinated selectors/endpoints. The `suite_run` counts in the review report reflect this verification, not full test execution.
 
 ### Decision Matrix
 
